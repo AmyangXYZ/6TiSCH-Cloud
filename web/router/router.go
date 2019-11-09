@@ -11,6 +11,7 @@ func SetRouter(app *sweetygo.SweetyGo) {
 	app.GET("/static/*files", controller.Static)
 
 	app.GET("/api/gateway", controller.GetGateway)
-	app.GET("/api/:gatewayName/topology", controller.GetTopologyData)
-	app.GET("/api/:gatewayName/nwstat", controller.GetNetworkStat)
+	app.GET("/api/:gateway/topology", controller.GetTopology)
+	app.GET("/api/:gateway/nwstat", controller.GetNWStat)
+	app.GET("/api/:gateway/nwstat/:sensorID", controller.GetSensorNWStat)
 }

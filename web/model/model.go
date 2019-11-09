@@ -2,6 +2,7 @@ package model
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -60,7 +61,7 @@ func GetGateway() ([]string, error) {
 	return gatewayList, nil
 }
 
-func GetTopologyData(gatewayName string) ([]Node, error) {
+func GetTopology(gatewayName string) ([]Node, error) {
 	var n Node
 	nodeList := make([]Node, 0)
 
@@ -78,29 +79,32 @@ func GetTopologyData(gatewayName string) ([]Node, error) {
 	return nodeList, nil
 }
 
+// NWStatData is all sensor's basic network stat data of one gateway
 type NWStatData struct {
 	SensorID int     `json:"sensor_id"`
 	AVGRTT   float64 `json:"avg_rtt"`
 }
 
-func GetNWStatData(gatewayName string) ([]NWStatData, error) {
-	var nwStatData NWStatData
-	nwStatDataList := make([]NWStatData, 0)
+func GetNWStat(gatewayName string) ([]NWStatData, error) {
+	var n NWStatData
+	nList := make([]NWStatData, 0)
 
 	rows, err := db.Query(`select SENSOR_ID,AVG(RTT) from NW_DATA_SET_LATENCY 
-		where GATEWAY_NAME=? group by SENSOR_ID`, gatewayName)
+		where GATEWAY_NAME=? and TIMESTAMP>=? and TIMESTAMP<=? group by SENSOR_ID`,
+		gatewayName)
 	if err != nil {
-		return nwStatDataList, err
+		return nList, err
 	}
 	defer rows.Close()
 
 	for rows.Next() {
-		rows.Scan(&nwStatData.SensorID, &nwStatData.AVGRTT)
-		nwStatDataList = append(nwStatDataList, nwStatData)
+		rows.Scan(&n.SensorID, &n.AVGRTT)
+		nList = append(nList, n)
 	}
-	return nwStatDataList, nil
+	return nList, nil
 }
 
+// NWStatDataAdv is all sensor's advanced network stat data of one gateway
 type NWStatDataAdv struct {
 	SensorID          int     `json:"sensor_id"`
 	AvgMACTxTotalDiff float32 `json:"avg_mac_tx_total_diff"`
@@ -109,23 +113,63 @@ type NWStatDataAdv struct {
 	AvgAPPPERLostDiff float32 `json:"avg_app_per_lost_diff"`
 }
 
-func GetNWStatDataAdv(gatewayName string) ([]NWStatDataAdv, error) {
-	var nwStatDataAdv NWStatDataAdv
-	nwStatDataAdvList := make([]NWStatDataAdv, 0)
+func GetNWStatAdv(gatewayName string) ([]NWStatDataAdv, error) {
+	var n NWStatDataAdv
+	nList := make([]NWStatDataAdv, 0)
 
 	rows, err := db.Query(`select SENSOR_ID, AVG(MAC_TX_TOTAL_DIFF), AVG(MAC_TX_NOACK_DIFF), 
 		AVG(APP_PER_SENT_DIFF), AVG(APP_PER_LOST_DIFF) from NW_DATA_SET_PER_UCONN 
 		where GATEWAY_NAME=? group by SENSOR_ID`, gatewayName)
 	if err != nil {
-		return nwStatDataAdvList, err
+		return nList, err
 	}
 	defer rows.Close()
 
 	for rows.Next() {
-		rows.Scan(&nwStatDataAdv.SensorID, &nwStatDataAdv.AvgMACTxTotalDiff,
-			&nwStatDataAdv.AvgMACTxNoACKDiff, &nwStatDataAdv.AvgAPPPERSentDiff,
-			&nwStatDataAdv.AvgAPPPERLostDiff)
-		nwStatDataAdvList = append(nwStatDataAdvList, nwStatDataAdv)
+		rows.Scan(&n.SensorID, &n.AvgMACTxTotalDiff,
+			&n.AvgMACTxNoACKDiff, &n.AvgAPPPERSentDiff,
+			&n.AvgAPPPERLostDiff)
+		nList = append(nList, n)
 	}
-	return nwStatDataAdvList, nil
+	return nList, nil
+}
+
+// SensorNWStatData is each sensor's network statistic detail
+type SensorNWStatData struct {
+	Timestamp int `json:"timestamp"`
+	Ch        map[string]struct {
+		RSSI    int `json:"rssi"`
+		RxRSSI  int `json:"rx_rssi"`
+		TxNoAck int `json:"tx_noack"`
+		TxTotal int `json:"tx_total"`
+	} `json:"ch"`
+	MacTxTotalDiff int `json:"mac_tx_total_diff"`
+	MacTxNoAckDiff int `json:"mac_tx_noack_diff"`
+	AppPERSentDiff int `json:"app_per_sent_diff"`
+	AppPERLostDiff int `json:"app_per_lost_diff"`
+}
+
+func GetSensorNWStat(gatewayName string, sensorID string) ([]SensorNWStatData, error) {
+	var s SensorNWStatData
+	var chInfo string
+	sList := make([]SensorNWStatData, 0)
+
+	rows, err := db.Query(`select TIMESTAMP,CHANNEL_INFO,MAC_TX_TOTAL_DIFF,
+		MAC_TX_NOACK_DIFF,APP_PER_SENT_DIFF,APP_PER_LOST_DIFF from NW_DATA_SET_PER_UCONN 
+		where GATEWAY_NAME=? and SENSOR_ID=?`, gatewayName, sensorID)
+	if err != nil {
+		return sList, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		rows.Scan(&s.Timestamp, &chInfo, &s.MacTxTotalDiff, &s.MacTxNoAckDiff,
+			&s.AppPERSentDiff, &s.AppPERLostDiff)
+		err = json.Unmarshal([]byte(chInfo), &s.Ch)
+		if err != nil {
+			return sList, err
+		}
+		sList = append(sList, s)
+	}
+	return sList, nil
 }
