@@ -9,7 +9,7 @@ import (
 )
 
 var (
-	addr   = ":8080"
+	addr   = ":8888"
 	tplDir = "templates"
 )
 
@@ -21,5 +21,5 @@ func main() {
 	app.USE(middlewares.CORS(middlewares.CORSOpt{}))
 	router.SetRouter(app)
 
-	app.Run(":8080")
+	app.Run(addr)
 }

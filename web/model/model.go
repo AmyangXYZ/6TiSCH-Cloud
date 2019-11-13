@@ -31,34 +31,38 @@ func init() {
 
 // Node info for topology.
 type Node struct {
-	Datetime    string  `json:"datetime"`
-	Timestamp   int     `json:"timestamp"`
-	GatewayName string  `json:"gateway_name"`
-	SensorID    int     `json:"sensor_id"`
-	Address     string  `json:"address"`
-	Parent      int     `json:"parent"`
-	Eui64       string  `json:"eui64"`
-	GPSLat      float64 `json:"gps_lat"`
-	GPSLon      float64 `json:"gps_lon"`
-	Type        string  `json:"type"`
-	Power       string  `json:"power"`
+	Datetime    string `json:"datetime"`
+	Timestamp   int    `json:"timestamp"`
+	GatewayName string `json:"gateway_name"`
+	SensorID    int    `json:"sensor_id"`
+	Address     string `json:"address"`
+	Parent      int    `json:"parent"`
+	Eui64       string `json:"eui64"`
+	Position    struct {
+		Lat float64 `json:"lat"`
+		Lng float64 `json:"lng"`
+	} `json:"position"`
+	Type  string `json:"type"`
+	Power string `json:"power"`
 }
 
 func GetGateway() ([]string, error) {
-	var gatewayName string
-	gatewayList := make([]string, 0)
+	var gName string
+	gList := make([]string, 0)
 
 	rows, err := db.Query("select distinct GATEWAY_NAME from TOPOLOGY_DATA;")
 	if err != nil {
-		return gatewayList, err
+		return gList, err
 	}
 	defer rows.Close()
 
 	for rows.Next() {
-		rows.Scan(&gatewayName)
-		gatewayList = append(gatewayList, gatewayName)
+		rows.Scan(&gName)
+		gList = append(gList, gName)
 	}
-	return gatewayList, nil
+	// for multi-gateway test
+	gList = append(gList, "UCONN_GWX")
+	return gList, nil
 }
 
 func GetTopology(gatewayName string) ([]Node, error) {
@@ -73,7 +77,7 @@ func GetTopology(gatewayName string) ([]Node, error) {
 
 	for rows.Next() {
 		rows.Scan(&n.Datetime, &n.Timestamp, &n.GatewayName, &n.SensorID,
-			&n.Address, &n.Parent, &n.Eui64, &n.GPSLat, &n.GPSLon, &n.Type, &n.Power)
+			&n.Address, &n.Parent, &n.Eui64, &n.Position.Lat, &n.Position.Lng, &n.Type, &n.Power)
 		nodeList = append(nodeList, n)
 	}
 	return nodeList, nil
@@ -90,7 +94,7 @@ func GetNWStat(gatewayName string) ([]NWStatData, error) {
 	nList := make([]NWStatData, 0)
 
 	rows, err := db.Query(`select SENSOR_ID,AVG(RTT) from NW_DATA_SET_LATENCY 
-		where GATEWAY_NAME=? and TIMESTAMP>=? and TIMESTAMP<=? group by SENSOR_ID`,
+		where GATEWAY_NAME=? group by SENSOR_ID`,
 		gatewayName)
 	if err != nil {
 		return nList, err
@@ -101,6 +105,7 @@ func GetNWStat(gatewayName string) ([]NWStatData, error) {
 		rows.Scan(&n.SensorID, &n.AVGRTT)
 		nList = append(nList, n)
 	}
+
 	return nList, nil
 }
 
@@ -149,7 +154,7 @@ type SensorNWStatData struct {
 	AppPERLostDiff int `json:"app_per_lost_diff"`
 }
 
-func GetSensorNWStat(gatewayName string, sensorID string) ([]SensorNWStatData, error) {
+func GetNWStatByID(gatewayName string, sensorID string) ([]SensorNWStatData, error) {
 	var s SensorNWStatData
 	var chInfo string
 	sList := make([]SensorNWStatData, 0)

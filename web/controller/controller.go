@@ -67,9 +67,9 @@ func GetNWStat(ctx *sweetygo.Context) error {
 	return ctx.JSON(200, 1, "success", nwStatData)
 }
 
-// GetSensorNWStat handles GET /api/:gateway/nwstat/:sensorID
-func GetSensorNWStat(ctx *sweetygo.Context) error {
-	sensorNWStatData, err := model.GetSensorNWStat(ctx.Param("gateway"), ctx.Param("sensorID"))
+// GetNWStat handles GET /api/:gateway/nwstat/:sensorID
+func GetNWStatByID(ctx *sweetygo.Context) error {
+	sensorNWStatData, err := model.GetNWStatByID(ctx.Param("gateway"), ctx.Param("sensorID"))
 	if err != nil {
 		return ctx.JSON(500, 0, err.Error(), nil)
 	}

@@ -13,5 +13,5 @@ func SetRouter(app *sweetygo.SweetyGo) {
 	app.GET("/api/gateway", controller.GetGateway)
 	app.GET("/api/:gateway/topology", controller.GetTopology)
 	app.GET("/api/:gateway/nwstat", controller.GetNWStat)
-	app.GET("/api/:gateway/nwstat/:sensorID", controller.GetSensorNWStat)
+	app.GET("/api/:gateway/nwstat/:sensorID", controller.GetNWStatByID)
 }
