@@ -46,17 +46,6 @@ func GetTopology(ctx *sweetygo.Context) error {
 
 // GetNWStat handles GET /api/:gateway/nwstat
 func GetNWStat(ctx *sweetygo.Context) error {
-	if len(ctx.Param("advanced")) > 0 && ctx.Param("advanced") == "1" {
-		nwStatDataAdv, err := model.GetNWStatAdv(ctx.Param("gateway"))
-		if err != nil {
-			return ctx.JSON(500, 0, err.Error(), nil)
-		}
-		if len(nwStatDataAdv) == 0 {
-			return ctx.JSON(200, 0, "no result found", nil)
-		}
-		return ctx.JSON(200, 1, "success", nwStatDataAdv)
-	}
-
 	nwStatData, err := model.GetNWStat(ctx.Param("gateway"))
 	if err != nil {
 		return ctx.JSON(500, 0, err.Error(), nil)

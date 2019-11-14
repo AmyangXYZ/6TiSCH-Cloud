@@ -85,57 +85,34 @@ func GetTopology(gatewayName string) ([]Node, error) {
 
 // NWStatData is all sensor's basic network stat data of one gateway
 type NWStatData struct {
-	SensorID int     `json:"sensor_id"`
-	AVGRTT   float64 `json:"avg_rtt"`
-}
-
-func GetNWStat(gatewayName string) ([]NWStatData, error) {
-	var n NWStatData
-	nList := make([]NWStatData, 0)
-
-	rows, err := db.Query(`select SENSOR_ID,AVG(RTT) from NW_DATA_SET_LATENCY 
-		where GATEWAY_NAME=? group by SENSOR_ID`,
-		gatewayName)
-	if err != nil {
-		return nList, err
-	}
-	defer rows.Close()
-
-	for rows.Next() {
-		rows.Scan(&n.SensorID, &n.AVGRTT)
-		nList = append(nList, n)
-	}
-
-	return nList, nil
-}
-
-// NWStatDataAdv is all sensor's advanced network stat data of one gateway
-type NWStatDataAdv struct {
 	SensorID          int     `json:"sensor_id"`
+	AVGRTT            float64 `json:"avg_rtt"`
 	AvgMACTxTotalDiff float32 `json:"avg_mac_tx_total_diff"`
 	AvgMACTxNoACKDiff float32 `json:"avg_mac_tx_noack_diff"`
 	AvgAPPPERSentDiff float32 `json:"avg_app_per_sent_diff"`
 	AvgAPPPERLostDiff float32 `json:"avg_app_per_lost_diff"`
 }
 
-func GetNWStatAdv(gatewayName string) ([]NWStatDataAdv, error) {
-	var n NWStatDataAdv
-	nList := make([]NWStatDataAdv, 0)
+func GetNWStat(gatewayName string) ([]NWStatData, error) {
+	var n NWStatData
+	nList := make([]NWStatData, 0)
 
-	rows, err := db.Query(`select SENSOR_ID, AVG(MAC_TX_TOTAL_DIFF), AVG(MAC_TX_NOACK_DIFF), 
-		AVG(APP_PER_SENT_DIFF), AVG(APP_PER_LOST_DIFF) from NW_DATA_SET_PER_UCONN 
-		where GATEWAY_NAME=? group by SENSOR_ID`, gatewayName)
+	rows, err := db.Query(`select NW_DATA_SET_LATENCY.SENSOR_ID, AVG(RTT), 
+		AVG(MAC_TX_TOTAL_DIFF),AVG(MAC_TX_NOACK_DIFF),AVG(APP_PER_SENT_DIFF),AVG(APP_PER_LOST_DIFF) 
+		from NW_DATA_SET_LATENCY inner join NW_DATA_SET_PER_UCONN on NW_DATA_SET_LATENCY.GATEWAY_NAME=? and
+		NW_DATA_SET_LATENCY.SENSOR_ID=NW_DATA_SET_PER_UCONN.SENSOR_ID group by SENSOR_ID`, gatewayName)
 	if err != nil {
 		return nList, err
 	}
 	defer rows.Close()
 
 	for rows.Next() {
-		rows.Scan(&n.SensorID, &n.AvgMACTxTotalDiff,
+		rows.Scan(&n.SensorID, &n.AVGRTT, &n.AvgMACTxTotalDiff,
 			&n.AvgMACTxNoACKDiff, &n.AvgAPPPERSentDiff,
 			&n.AvgAPPPERLostDiff)
 		nList = append(nList, n)
 	}
+
 	return nList, nil
 }
 
