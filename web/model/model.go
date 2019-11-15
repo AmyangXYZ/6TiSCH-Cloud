@@ -32,14 +32,14 @@ func init() {
 
 // Node info for topology.
 type Node struct {
-	Datetime    string `json:"datetime"`
-	Timestamp   int    `json:"timestamp"`
-	GatewayName string `json:"gateway_name"`
-	SensorID    int    `json:"sensor_id"`
-	Address     string `json:"address"`
-	Parent      int    `json:"parent"`
-	Eui64       string `json:"eui64"`
-	Position    struct {
+	Datetime  string `json:"datetime"`
+	Timestamp int    `json:"timestamp"`
+	Gateway   string `json:"gateway"`
+	SensorID  int    `json:"sensor_id"`
+	Address   string `json:"address"`
+	Parent    int    `json:"parent"`
+	Eui64     string `json:"eui64"`
+	Position  struct {
 		Lat float64 `json:"lat"`
 		Lng float64 `json:"lng"`
 	} `json:"position"`
@@ -71,7 +71,7 @@ func GetTopology(gatewayName string, timeRange int64) ([]Node, error) {
 	var rows *sql.Rows
 	nodeList := make([]Node, 0)
 
-	if gatewayName == "ANY" {
+	if gatewayName == "any" {
 		rows, err = db.Query("select * from TOPOLOGY_DATA where TIMESTAMP>?", timeRange)
 	} else {
 		rows, err = db.Query("select * from TOPOLOGY_DATA where GATEWAY_NAME=? and TIMESTAMP>?", gatewayName, timeRange)
@@ -82,7 +82,7 @@ func GetTopology(gatewayName string, timeRange int64) ([]Node, error) {
 	defer rows.Close()
 
 	for rows.Next() {
-		rows.Scan(&n.Datetime, &n.Timestamp, &n.GatewayName, &n.SensorID,
+		rows.Scan(&n.Datetime, &n.Timestamp, &n.Gateway, &n.SensorID,
 			&n.Address, &n.Parent, &n.Eui64, &n.Position.Lat, &n.Position.Lng, &n.Type, &n.Power)
 		nodeList = append(nodeList, n)
 	}
@@ -92,6 +92,7 @@ func GetTopology(gatewayName string, timeRange int64) ([]Node, error) {
 // NWStatData is all sensor's basic network stat data of one gateway
 type NWStatData struct {
 	SensorID          int     `json:"sensor_id"`
+	Gateway           string  `json:"gateway"`
 	AVGRTT            float64 `json:"avg_rtt"`
 	AvgMACTxTotalDiff float32 `json:"avg_mac_tx_total_diff"`
 	AvgMACTxNoACKDiff float32 `json:"avg_mac_tx_noack_diff"`
@@ -104,13 +105,13 @@ func GetNWStat(gatewayName string, timeRange int64) ([]NWStatData, error) {
 	var rows *sql.Rows
 	nList := make([]NWStatData, 0)
 
-	if gatewayName == "ANY" {
-		rows, err = db.Query(`select NW_DATA_SET_LATENCY.SENSOR_ID, AVG(RTT), 
+	if gatewayName == "any" {
+		rows, err = db.Query(`select NW_DATA_SET_LATENCY.SENSOR_ID, NW_DATA_SET_LATENCY.GATEWAY_NAME, AVG(RTT), 
 		AVG(MAC_TX_TOTAL_DIFF),AVG(MAC_TX_NOACK_DIFF),AVG(APP_PER_SENT_DIFF),AVG(APP_PER_LOST_DIFF) 
 		from NW_DATA_SET_LATENCY inner join NW_DATA_SET_PER_UCONN on NW_DATA_SET_LATENCY.TIMESTAMP>? and
 		NW_DATA_SET_LATENCY.SENSOR_ID=NW_DATA_SET_PER_UCONN.SENSOR_ID group by SENSOR_ID`, timeRange)
 	} else {
-		rows, err = db.Query(`select NW_DATA_SET_LATENCY.SENSOR_ID, AVG(RTT), 
+		rows, err = db.Query(`select NW_DATA_SET_LATENCY.SENSOR_ID, NW_DATA_SET_LATENCY.GATEWAY_NAME, AVG(RTT), 
 		AVG(MAC_TX_TOTAL_DIFF),AVG(MAC_TX_NOACK_DIFF),AVG(APP_PER_SENT_DIFF),AVG(APP_PER_LOST_DIFF) 
 		from NW_DATA_SET_LATENCY inner join NW_DATA_SET_PER_UCONN on NW_DATA_SET_LATENCY.GATEWAY_NAME=? and
 		NW_DATA_SET_LATENCY.TIMESTAMP>? and NW_DATA_SET_LATENCY.SENSOR_ID=NW_DATA_SET_PER_UCONN.SENSOR_ID group by SENSOR_ID`, gatewayName, timeRange)
@@ -121,7 +122,7 @@ func GetNWStat(gatewayName string, timeRange int64) ([]NWStatData, error) {
 	defer rows.Close()
 
 	for rows.Next() {
-		rows.Scan(&n.SensorID, &n.AVGRTT, &n.AvgMACTxTotalDiff,
+		rows.Scan(&n.SensorID, &n.Gateway, &n.AVGRTT, &n.AvgMACTxTotalDiff,
 			&n.AvgMACTxNoACKDiff, &n.AvgAPPPERSentDiff,
 			&n.AvgAPPPERLostDiff)
 		nList = append(nList, n)
@@ -132,7 +133,8 @@ func GetNWStat(gatewayName string, timeRange int64) ([]NWStatData, error) {
 
 // SensorNWStatData is each sensor's network statistic detail
 type SensorNWStatData struct {
-	Timestamp int `json:"timestamp"`
+	Timestamp int    `json:"timestamp"`
+	Gateway   string `json:"gateway"`
 	Ch        map[string]struct {
 		RSSI    int `json:"rssi"`
 		RxRSSI  int `json:"rx_rssi"`
@@ -151,7 +153,7 @@ func GetNWStatByID(gatewayName, sensorID string, timeRange int64) ([]SensorNWSta
 	var chInfo string
 	sList := make([]SensorNWStatData, 0)
 
-	rows, err = db.Query(`select TIMESTAMP,CHANNEL_INFO,MAC_TX_TOTAL_DIFF,
+	rows, err = db.Query(`select TIMESTAMP, GATEWAY_NAME, CHANNEL_INFO,MAC_TX_TOTAL_DIFF,
 		MAC_TX_NOACK_DIFF,APP_PER_SENT_DIFF,APP_PER_LOST_DIFF from NW_DATA_SET_PER_UCONN 
 		where GATEWAY_NAME=? and SENSOR_ID=? and TIMESTAMP>`, gatewayName, sensorID, timeRange)
 	if err != nil {
@@ -160,7 +162,7 @@ func GetNWStatByID(gatewayName, sensorID string, timeRange int64) ([]SensorNWSta
 	defer rows.Close()
 
 	for rows.Next() {
-		rows.Scan(&s.Timestamp, &chInfo, &s.MacTxTotalDiff, &s.MacTxNoAckDiff,
+		rows.Scan(&s.Timestamp, &s.Gateway, &chInfo, &s.MacTxTotalDiff, &s.MacTxNoAckDiff,
 			&s.AppPERSentDiff, &s.AppPERLostDiff)
 		err = json.Unmarshal([]byte(chInfo), &s.Ch)
 		if err != nil {
