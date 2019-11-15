@@ -12,6 +12,7 @@ import (
 var (
 	db     *sql.DB
 	dbAddr = "root:1234@tcp(127.0.0.1:3306)/6tisch"
+	err    error
 )
 
 func init() {
@@ -46,11 +47,11 @@ type Node struct {
 	Power string `json:"power"`
 }
 
-func GetGateway() ([]string, error) {
+func GetGateway(timeRange int64) ([]string, error) {
 	var gName string
 	gList := make([]string, 0)
 
-	rows, err := db.Query("select distinct GATEWAY_NAME from TOPOLOGY_DATA;")
+	rows, err := db.Query("select distinct GATEWAY_NAME from TOPOLOGY_DATA where TIMESTAMP>?;", timeRange)
 	if err != nil {
 		return gList, err
 	}
@@ -65,11 +66,16 @@ func GetGateway() ([]string, error) {
 	return gList, nil
 }
 
-func GetTopology(gatewayName string) ([]Node, error) {
+func GetTopology(gatewayName string, timeRange int64) ([]Node, error) {
 	var n Node
+	var rows *sql.Rows
 	nodeList := make([]Node, 0)
 
-	rows, err := db.Query("select * from TOPOLOGY_DATA where GATEWAY_NAME=?", gatewayName)
+	if gatewayName == "ANY" {
+		rows, err = db.Query("select * from TOPOLOGY_DATA where TIMESTAMP>?", timeRange)
+	} else {
+		rows, err = db.Query("select * from TOPOLOGY_DATA where GATEWAY_NAME=? and TIMESTAMP>?", gatewayName, timeRange)
+	}
 	if err != nil {
 		return nodeList, err
 	}
@@ -93,14 +99,22 @@ type NWStatData struct {
 	AvgAPPPERLostDiff float32 `json:"avg_app_per_lost_diff"`
 }
 
-func GetNWStat(gatewayName string) ([]NWStatData, error) {
+func GetNWStat(gatewayName string, timeRange int64) ([]NWStatData, error) {
 	var n NWStatData
+	var rows *sql.Rows
 	nList := make([]NWStatData, 0)
 
-	rows, err := db.Query(`select NW_DATA_SET_LATENCY.SENSOR_ID, AVG(RTT), 
+	if gatewayName == "ANY" {
+		rows, err = db.Query(`select NW_DATA_SET_LATENCY.SENSOR_ID, AVG(RTT), 
+		AVG(MAC_TX_TOTAL_DIFF),AVG(MAC_TX_NOACK_DIFF),AVG(APP_PER_SENT_DIFF),AVG(APP_PER_LOST_DIFF) 
+		from NW_DATA_SET_LATENCY inner join NW_DATA_SET_PER_UCONN on NW_DATA_SET_LATENCY.TIMESTAMP>? and
+		NW_DATA_SET_LATENCY.SENSOR_ID=NW_DATA_SET_PER_UCONN.SENSOR_ID group by SENSOR_ID`, timeRange)
+	} else {
+		rows, err = db.Query(`select NW_DATA_SET_LATENCY.SENSOR_ID, AVG(RTT), 
 		AVG(MAC_TX_TOTAL_DIFF),AVG(MAC_TX_NOACK_DIFF),AVG(APP_PER_SENT_DIFF),AVG(APP_PER_LOST_DIFF) 
 		from NW_DATA_SET_LATENCY inner join NW_DATA_SET_PER_UCONN on NW_DATA_SET_LATENCY.GATEWAY_NAME=? and
-		NW_DATA_SET_LATENCY.SENSOR_ID=NW_DATA_SET_PER_UCONN.SENSOR_ID group by SENSOR_ID`, gatewayName)
+		NW_DATA_SET_LATENCY.TIMESTAMP>? and NW_DATA_SET_LATENCY.SENSOR_ID=NW_DATA_SET_PER_UCONN.SENSOR_ID group by SENSOR_ID`, gatewayName, timeRange)
+	}
 	if err != nil {
 		return nList, err
 	}
@@ -131,14 +145,15 @@ type SensorNWStatData struct {
 	AppPERLostDiff int `json:"app_per_lost_diff"`
 }
 
-func GetNWStatByID(gatewayName string, sensorID string) ([]SensorNWStatData, error) {
+func GetNWStatByID(gatewayName, sensorID string, timeRange int64) ([]SensorNWStatData, error) {
 	var s SensorNWStatData
+	var rows *sql.Rows
 	var chInfo string
 	sList := make([]SensorNWStatData, 0)
 
-	rows, err := db.Query(`select TIMESTAMP,CHANNEL_INFO,MAC_TX_TOTAL_DIFF,
+	rows, err = db.Query(`select TIMESTAMP,CHANNEL_INFO,MAC_TX_TOTAL_DIFF,
 		MAC_TX_NOACK_DIFF,APP_PER_SENT_DIFF,APP_PER_LOST_DIFF from NW_DATA_SET_PER_UCONN 
-		where GATEWAY_NAME=? and SENSOR_ID=?`, gatewayName, sensorID)
+		where GATEWAY_NAME=? and SENSOR_ID=? and TIMESTAMP>`, gatewayName, sensorID, timeRange)
 	if err != nil {
 		return sList, err
 	}
