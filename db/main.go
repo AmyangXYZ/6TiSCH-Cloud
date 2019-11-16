@@ -151,20 +151,30 @@ func handleNetworkData0(n0 network0, gwn string) {
 	timestamp := t.UnixNano() / 1e6
 
 	stmt, err := db.Prepare(`INSERT INTO NW_DATA_SET_PER_UCONN(DATETIME, TIMESTAMP, GATEWAY_NAME, SENSOR_ID, 
-		CHANNEL_INFO, APP_PER_SENT_LAST_SEQ, APP_PER_SENT, APP_PER_SENT_LOST, TX_FAIL, TX_NOACK, TX_TOTAL, 
-		RX_TOTAL, TX_LENGTH_TOTAL, MAC_TX_NOACK_DIFF, MAC_TX_TOTAL_DIFF, MAC_RX_TOTAL_DIFF, 
+		CHANNEL_INFO, AVG_RSSI, APP_PER_SENT_LAST_SEQ, APP_PER_SENT, APP_PER_SENT_LOST, TX_FAIL, TX_NOACK, 
+		TX_TOTAL, RX_TOTAL, TX_LENGTH_TOTAL, MAC_TX_NOACK_DIFF, MAC_TX_TOTAL_DIFF, MAC_RX_TOTAL_DIFF, 
 		MAC_TX_LENGTH_TOTAL_DIFF, APP_PER_LOST_DIFF, APP_PER_SENT_DIFF) 
-		VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
+		VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
 	if err != nil {
 		Error.Println(err)
 	}
-
+	// compute average rssi
+	avgRSSi := 0
+	cnt := 0
+	tmp := 0
+	for _, v := range n0.Data.Ch {
+		if v.RSSI != 0 {
+			cnt++
+			tmp += v.RSSI
+		}
+	}
+	avgRSSi = tmp / cnt
 	channelInfo, err := json.Marshal(n0.Data.Ch)
 	if err != nil {
 		Error.Println(err)
 	}
 
-	_, err = stmt.Exec(datetime, timestamp, gwn, n0.ID, channelInfo, n0.Data.AppPER.LastSeq, n0.Data.AppPER.Sent, n0.Data.AppPER.Lost,
+	_, err = stmt.Exec(datetime, timestamp, gwn, n0.ID, channelInfo, avgRSSi, n0.Data.AppPER.LastSeq, n0.Data.AppPER.Sent, n0.Data.AppPER.Lost,
 		n0.Data.TxFail, n0.Data.TxNoAck, n0.Data.TxTotal, n0.Data.RxTotal, n0.Data.TxLengthTotal, n0.Data.MacTxNoAckDiff,
 		n0.Data.MacTxTotalDiff, n0.Data.MacRxTotalDiff, n0.Data.MacTxLengthTotalDiff, n0.Data.AppLostDiff, n0.Data.AppSentDiff)
 	if err != nil {
@@ -289,6 +299,7 @@ func init() {
 		GATEWAY_NAME VARCHAR(64) NOT NULL,
 		SENSOR_ID SMALLINT UNSIGNED NOT NULL,
 		CHANNEL_INFO TEXT,
+		AVG_RSSI SMALLINT NOT NULL,
 		APP_PER_SENT_LAST_SEQ SMALLINT NOT NULL,
 		APP_PER_SENT SMALLINT NOT NULL,
 		APP_PER_SENT_LOST SMALLINT NOT NULL,

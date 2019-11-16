@@ -141,34 +141,48 @@ type SensorNWStatData struct {
 		TxNoAck int `json:"tx_noack"`
 		TxTotal int `json:"tx_total"`
 	} `json:"ch"`
+	AvgRSSI        int `json:"avg_rssi"`
 	MacTxTotalDiff int `json:"mac_tx_total_diff"`
 	MacTxNoAckDiff int `json:"mac_tx_noack_diff"`
 	AppPERSentDiff int `json:"app_per_sent_diff"`
 	AppPERLostDiff int `json:"app_per_lost_diff"`
 }
 
-func GetNWStatByID(gatewayName, sensorID string, timeRange int64) ([]SensorNWStatData, error) {
+func GetNWStatByID(adv, gatewayName, sensorID string, timeRange int64) ([]SensorNWStatData, error) {
 	var s SensorNWStatData
 	var rows *sql.Rows
 	var chInfo string
 	sList := make([]SensorNWStatData, 0)
-
-	rows, err = db.Query(`select TIMESTAMP, GATEWAY_NAME, CHANNEL_INFO,MAC_TX_TOTAL_DIFF,
-		MAC_TX_NOACK_DIFF,APP_PER_SENT_DIFF,APP_PER_LOST_DIFF from NW_DATA_SET_PER_UCONN 
-		where GATEWAY_NAME=? and SENSOR_ID=? and TIMESTAMP>`, gatewayName, sensorID, timeRange)
-	if err != nil {
-		return sList, err
-	}
-	defer rows.Close()
-
-	for rows.Next() {
-		rows.Scan(&s.Timestamp, &s.Gateway, &chInfo, &s.MacTxTotalDiff, &s.MacTxNoAckDiff,
-			&s.AppPERSentDiff, &s.AppPERLostDiff)
-		err = json.Unmarshal([]byte(chInfo), &s.Ch)
+	if adv == "0" || adv == "" {
+		rows, err = db.Query(`select TIMESTAMP, GATEWAY_NAME, AVG_RSSI from NW_DATA_SET_PER_UCONN 
+		where GATEWAY_NAME=? and SENSOR_ID=? and TIMESTAMP>?`, gatewayName, sensorID, timeRange)
 		if err != nil {
 			return sList, err
 		}
-		sList = append(sList, s)
+		defer rows.Close()
+
+		for rows.Next() {
+			rows.Scan(&s.Timestamp, &s.Gateway, &s.AvgRSSI)
+			sList = append(sList, s)
+		}
+	} else {
+		rows, err = db.Query(`select TIMESTAMP, GATEWAY_NAME, CHANNEL_INFO, MAC_TX_TOTAL_DIFF,
+		MAC_TX_NOACK_DIFF,APP_PER_SENT_DIFF,APP_PER_LOST_DIFF from NW_DATA_SET_PER_UCONN 
+		where GATEWAY_NAME=? and SENSOR_ID=? and TIMESTAMP>?`, gatewayName, sensorID, timeRange)
+		if err != nil {
+			return sList, err
+		}
+		defer rows.Close()
+
+		for rows.Next() {
+			rows.Scan(&s.Timestamp, &s.Gateway, &chInfo, &s.MacTxTotalDiff, &s.MacTxNoAckDiff,
+				&s.AppPERSentDiff, &s.AppPERLostDiff)
+			err = json.Unmarshal([]byte(chInfo), &s.Ch)
+			if err != nil {
+				return sList, err
+			}
+			sList = append(sList, s)
+		}
 	}
 	return sList, nil
 }
