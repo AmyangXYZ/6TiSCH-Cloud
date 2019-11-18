@@ -6,7 +6,7 @@
 
 #### Common JSON Format
 
-```json
+```text
 {
     // results
     "data": {},
@@ -32,7 +32,7 @@ Params: `range`
 
 Example:
 
-```json
+```text
 data": [
     "UCONN_GW",
     "UCONN_GWX"
@@ -47,7 +47,7 @@ Params: `range`
 
 Example:
 
-```json
+```text
 "data": [
     ...
     {
@@ -77,7 +77,7 @@ Params: `range`
 
 Example:
 
-```json
+```text
 "data": [
     ...
     {
@@ -103,7 +103,7 @@ Example:
 
 advanced=0
 
-```json
+```text
 "data": [
     ...
     {
@@ -122,7 +122,7 @@ advanced=0
 
 advanced=1
 
-```json
+```text
 "data": [
     ...
     {
@@ -151,7 +151,7 @@ Params: none
 
 Example:
 
-```json
+```text
 "data": [
     ...
     {
