@@ -51,7 +51,7 @@ func GetGateway(timeRange int64) ([]string, error) {
 	var gName string
 	gList := make([]string, 0)
 
-	rows, err := db.Query("select distinct GATEWAY_NAME from TOPOLOGY_DATA where TIMESTAMP>?;", timeRange)
+	rows, err := db.Query("select distinct GATEWAY_NAME from TOPOLOGY_DATA where TIMESTAMP>=?;", timeRange)
 	if err != nil {
 		return gList, err
 	}
@@ -72,9 +72,9 @@ func GetTopology(gatewayName string, timeRange int64) ([]Node, error) {
 	nodeList := make([]Node, 0)
 
 	if gatewayName == "any" {
-		rows, err = db.Query("select * from TOPOLOGY_DATA where TIMESTAMP>?", timeRange)
+		rows, err = db.Query("select * from TOPOLOGY_DATA where TIMESTAMP>=?", timeRange)
 	} else {
-		rows, err = db.Query("select * from TOPOLOGY_DATA where GATEWAY_NAME=? and TIMESTAMP>?", gatewayName, timeRange)
+		rows, err = db.Query("select * from TOPOLOGY_DATA where GATEWAY_NAME=? and TIMESTAMP>=?", gatewayName, timeRange)
 	}
 	if err != nil {
 		return nodeList, err
@@ -108,13 +108,13 @@ func GetNWStat(gatewayName string, timeRange int64) ([]NWStatData, error) {
 	if gatewayName == "any" {
 		rows, err = db.Query(`select NW_DATA_SET_LATENCY.SENSOR_ID, NW_DATA_SET_LATENCY.GATEWAY_NAME, AVG(RTT), 
 		AVG(MAC_TX_TOTAL_DIFF),AVG(MAC_TX_NOACK_DIFF),AVG(APP_PER_SENT_DIFF),AVG(APP_PER_LOST_DIFF) 
-		from NW_DATA_SET_LATENCY inner join NW_DATA_SET_PER_UCONN on NW_DATA_SET_LATENCY.TIMESTAMP>? and
+		from NW_DATA_SET_LATENCY inner join NW_DATA_SET_PER_UCONN on NW_DATA_SET_LATENCY.TIMESTAMP>=? and
 		NW_DATA_SET_LATENCY.SENSOR_ID=NW_DATA_SET_PER_UCONN.SENSOR_ID group by SENSOR_ID`, timeRange)
 	} else {
 		rows, err = db.Query(`select NW_DATA_SET_LATENCY.SENSOR_ID, NW_DATA_SET_LATENCY.GATEWAY_NAME, AVG(RTT), 
 		AVG(MAC_TX_TOTAL_DIFF),AVG(MAC_TX_NOACK_DIFF),AVG(APP_PER_SENT_DIFF),AVG(APP_PER_LOST_DIFF) 
 		from NW_DATA_SET_LATENCY inner join NW_DATA_SET_PER_UCONN on NW_DATA_SET_LATENCY.GATEWAY_NAME=? and
-		NW_DATA_SET_LATENCY.TIMESTAMP>? and NW_DATA_SET_LATENCY.SENSOR_ID=NW_DATA_SET_PER_UCONN.SENSOR_ID group by SENSOR_ID`, gatewayName, timeRange)
+		NW_DATA_SET_LATENCY.TIMESTAMP>=? and NW_DATA_SET_LATENCY.SENSOR_ID=NW_DATA_SET_PER_UCONN.SENSOR_ID group by SENSOR_ID`, gatewayName, timeRange)
 	}
 	if err != nil {
 		return nList, err
@@ -155,7 +155,7 @@ func GetNWStatByID(adv, gatewayName, sensorID string, timeRange int64) ([]Sensor
 	sList := make([]SensorNWStatData, 0)
 	if adv == "0" || adv == "" {
 		rows, err = db.Query(`select TIMESTAMP, GATEWAY_NAME, AVG_RSSI from NW_DATA_SET_PER_UCONN 
-		where GATEWAY_NAME=? and SENSOR_ID=? and TIMESTAMP>?`, gatewayName, sensorID, timeRange)
+			where GATEWAY_NAME=? and SENSOR_ID=? and TIMESTAMP>=?`, gatewayName, sensorID, timeRange)
 		if err != nil {
 			return sList, err
 		}
@@ -167,8 +167,8 @@ func GetNWStatByID(adv, gatewayName, sensorID string, timeRange int64) ([]Sensor
 		}
 	} else {
 		rows, err = db.Query(`select TIMESTAMP, GATEWAY_NAME, CHANNEL_INFO, MAC_TX_TOTAL_DIFF,
-		MAC_TX_NOACK_DIFF,APP_PER_SENT_DIFF,APP_PER_LOST_DIFF from NW_DATA_SET_PER_UCONN 
-		where GATEWAY_NAME=? and SENSOR_ID=? and TIMESTAMP>?`, gatewayName, sensorID, timeRange)
+			MAC_TX_NOACK_DIFF,APP_PER_SENT_DIFF,APP_PER_LOST_DIFF from NW_DATA_SET_PER_UCONN 
+			where GATEWAY_NAME=? and SENSOR_ID=? and TIMESTAMP>=?`, gatewayName, sensorID, timeRange)
 		if err != nil {
 			return sList, err
 		}
@@ -185,4 +185,40 @@ func GetNWStatByID(adv, gatewayName, sensorID string, timeRange int64) ([]Sensor
 		}
 	}
 	return sList, nil
+}
+
+type SensorBatteryData struct {
+	Gateway         string  `json:"gateway"`
+	SensorID        int     `json:"sensor_id"`
+	AvgCC2650Active float64 `json:"avg_cc2650_active"`
+	AvgCC2650Sleep  float64 `json:"avg_cc2650_sleep"`
+	AvgRFRx         float64 `json:"avg_rf_rx"`
+	AvgRFTx         float64 `json:"avg_rf_tx"`
+	BatRemain       string  `json:"bat_remain"`
+}
+
+func GetBattery(gatewayName string, timeRange int64) ([]SensorBatteryData, error) {
+	var b SensorBatteryData
+	var rows *sql.Rows
+	bList := make([]SensorBatteryData, 0)
+	var bat float64
+	if gatewayName == "any" {
+		rows, err = db.Query(`select SENSOR_ID,GATEWAY_NAME,AVG(CC2650_ACTIVE),AVG(CC2650_SLEEP),AVG(RF_RX),AVG(RF_TX),BAT 
+			from SENSOR_DATA where TIMESTAMP>=? group by SENSOR_ID`, timeRange)
+	} else {
+		rows, err = db.Query(`select SENSOR_ID,GATEWAY_NAME,AVG(CC2650_ACTIVE),AVG(CC2650_SLEEP),AVG(RF_RX),AVG(RF_TX),BAT 
+			from SENSOR_DATA where GATEWAY_NAME=? and TIMESTAMP>=? group by SENSOR_ID`, gatewayName, timeRange)
+	}
+	if err != nil {
+		return bList, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		rows.Scan(&b.SensorID, &b.Gateway, &b.AvgCC2650Active, &b.AvgCC2650Sleep, &b.AvgRFRx, &b.AvgRFTx, &bat)
+		// todo
+		// b.BatRemain = string(bat)
+		bList = append(bList, b)
+	}
+	return bList, nil
 }

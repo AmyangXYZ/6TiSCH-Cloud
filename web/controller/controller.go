@@ -60,7 +60,7 @@ func GetNWStat(ctx *sweetygo.Context) error {
 	return ctx.JSON(200, 1, "success", nwStatData)
 }
 
-// GetNWStat handles GET /api/:gateway/nwstat/:sensorID
+// GetNWStatByID handles GET /api/:gateway/nwstat/:sensorID
 func GetNWStatByID(ctx *sweetygo.Context) error {
 	timeRange := range2stamp(ctx.Param("range"))
 	sensorNWStatData, err := model.GetNWStatByID(ctx.Param("advanced"), ctx.Param("gateway"), ctx.Param("sensorID"), timeRange)
@@ -71,6 +71,19 @@ func GetNWStatByID(ctx *sweetygo.Context) error {
 		return ctx.JSON(200, 0, "no result found", nil)
 	}
 	return ctx.JSON(200, 1, "success", sensorNWStatData)
+}
+
+// GetBattery handles GET /api/:gateway/battery
+func GetBattery(ctx *sweetygo.Context) error {
+	timeRange := range2stamp(ctx.Param("range"))
+	batData, err := model.GetBattery(ctx.Param("gateway"), timeRange)
+	if err != nil {
+		return ctx.JSON(500, 0, err.Error(), nil)
+	}
+	if len(batData) == 0 {
+		return ctx.JSON(200, 0, "no result found", nil)
+	}
+	return ctx.JSON(200, 1, "success", batData)
 }
 
 func range2stamp(timeRange string) int64 {
