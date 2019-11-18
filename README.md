@@ -1,1 +1,1 @@
-# 6TiSCH_Cloud
+# 6TiSCH Cloud
