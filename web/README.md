@@ -111,10 +111,6 @@ advanced=0
         "gateway": "UCONN_GW",
         "ch": null,
         "avg_rssi": -44,
-        "mac_tx_total_diff": 0,
-        "mac_tx_noack_diff": 0,
-        "app_per_sent_diff": 0,
-        "app_per_lost_diff": 0
     },
     ...
 ]
@@ -137,7 +133,11 @@ advanced=1
                 "tx_total": 0
             },
             ...
-        }
+        },
+        "mac_tx_total_diff": 35,
+        "mac_tx_noack_diff": 1,
+        "app_per_sent_diff": 12,
+        "app_per_lost_diff": 0
     }
     ...
 ]
