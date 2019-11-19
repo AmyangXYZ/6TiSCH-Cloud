@@ -25,7 +25,7 @@ var (
 
 func main() {
 	http.HandleFunc("/biu", handle)
-	http.ListenAndServe("192.168.7.1:80", nil)
+	http.ListenAndServe(":54321", nil)
 }
 
 // parse and store json data sent from gateway
@@ -35,7 +35,7 @@ func handle(w http.ResponseWriter, r *http.Request) {
 		Error.Println(err)
 		return
 	}
-
+	
 	var msg json.RawMessage
 	d := data{Msg: &msg}
 	err = json.Unmarshal(body, &d)
@@ -45,9 +45,17 @@ func handle(w http.ResponseWriter, r *http.Request) {
 	}
 	Info.Println(d.Type)
 
-	gwn := d.Gateway.Name
+	gwn := d.Gateway.Msg.Name
 
 	switch d.Type {
+	case "heart":
+		var h heart
+		err = json.Unmarshal(msg, &h)
+		if err != nil {
+			Error.Println(err)
+			return
+		}
+		handleHeartBeatData(h, gwn)
 	case "topology_data":
 		var t topology
 		err = json.Unmarshal(msg, &t)
@@ -97,7 +105,7 @@ func handle(w http.ResponseWriter, r *http.Request) {
 		}
 		handleNetworkData2(n2, gwn)
 	default:
-		Error.Println("Unknown data type:", d.Type)
+		Error.Println("Unknown data type:", string(body))
 	}
 
 	fmt.Fprintf(w, "Got it!\n")
@@ -119,6 +127,10 @@ func handleTopologyData(topo topology, gwn string) {
 	if err != nil {
 		Error.Panicln(err)
 	}
+}
+
+func handleHeartBeatData(h heart, gwn string) {
+	// fmt.Println(n)
 }
 
 func handleNodesData(n []node, gwn string) {
@@ -364,10 +376,23 @@ type (
 	}
 
 	gateway struct {
-		Name    string     `json:"name"`
-		Address string     `json:"address"`
-		GPS     [2]float64 `json:"gps"`
-		Color   string     `json:"color"`
+		Type string `json:"type"`
+		Msg struct {
+			Name    string     `json:"name"`
+			Address string     `json:"address"`
+			GPS     [2]float64 `json:"gps"`
+			Color   string     `json:"color"`
+		} `json:"msg"`
+	}
+
+	heart struct {
+		Type string `json:"type"`
+		Msg struct {
+			Name    string     `json:"name"`
+			Address string     `json:"address"`
+			GPS     [2]float64 `json:"gps"`
+			Color   string     `json:"color"`
+		} `json:"msg"`
 	}
 
 	node struct {
