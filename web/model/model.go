@@ -31,7 +31,6 @@ func init() {
 
 // Node info for topology.
 type Node struct {
-	Datetime  string `json:"datetime"`
 	Timestamp int    `json:"timestamp"`
 	Gateway   string `json:"gateway"`
 	SensorID  int    `json:"sensor_id"`
@@ -81,7 +80,7 @@ func GetTopology(gatewayName string, timeRange int64) ([]Node, error) {
 	defer rows.Close()
 
 	for rows.Next() {
-		rows.Scan(&n.Datetime, &n.Timestamp, &n.Gateway, &n.SensorID,
+		rows.Scan(&n.Timestamp, &n.Gateway, &n.SensorID,
 			&n.Address, &n.Parent, &n.Eui64, &n.Position.Lat, &n.Position.Lng, &n.Type, &n.Power)
 		nodeList = append(nodeList, n)
 	}
