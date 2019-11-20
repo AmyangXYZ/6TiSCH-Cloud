@@ -169,7 +169,7 @@ func handleNetworkData0(n0 network0, gwn string) {
 		Error.Println(err)
 	}
 	stmt2, err := db.Prepare(`INSERT INTO NW_DATA_SET_PER_CHINFO(TIMESTAMP, GATEWAY_NAME, SENSOR_ID, 
-		CHANNELS, RSSI, RxRSSI, TxNoAck, TxTotal) 
+		CHANNELS, RSSI, RX_RSSI, TX_NOACK, TX_TOTAL) 
 		VALUES(?,?,?,?,?,?,?,?)`)
 	if err != nil {
 		Error.Println(err)
@@ -350,15 +350,15 @@ func init() {
 	Info.Println("Table NW_DATA_SET_PER_UCONN ready")
 
 	// CHANNEL_INFO in NW_DATA_SET_PER_UCONN or network_data_0
-	db.Exec(`CREATE TABLE IF NOT EXISTS NW_DATA_SET_PER_CHINFO (
+	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS NW_DATA_SET_PER_CHINFO (
 		TIMESTAMP BIGINT,
 		GATEWAY_NAME VARCHAR(16) NOT NULL,
 		SENSOR_ID SMALLINT UNSIGNED NOT NULL,
 		CHANNELS VARCHAR(64) NOT NULL,
 		RSSI VARCHAR(128) NOT NULL,
-		RxRSSI  VARCHAR(128) NOT NULL,
-		TxNoAck VARCHAR(128) NOT NULL,
-		TxTotal VARCHAR(64) NOT NULL,);`)
+		RX_RSSI  VARCHAR(128) NOT NULL,
+		TX_NOACK VARCHAR(128) NOT NULL,
+		TX_TOTAL VARCHAR(64) NOT NULL);`)
 	if err != nil {
 		Error.Panicln(err)
 	}
