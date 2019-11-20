@@ -130,7 +130,7 @@ func GetNWStat(gatewayName string, timeRange int64) ([]NWStatData, error) {
 		return nList, err
 	}
 	defer rows1.Close()
-	defer rows2.Close()
+	// defer rows2.Close()
 
 	for rows1.Next() {
 		rows1.Scan(&n.SensorID, &n.Gateway, &n.AvgMACTxTotalDiff, &n.AvgMACTxNoACKDiff,
@@ -152,11 +152,17 @@ func GetNWStat(gatewayName string, timeRange int64) ([]NWStatData, error) {
 	return nList, nil
 }
 
-// SensorNWStatData is each sensor's network statistic detail
+// SensorNWStatData is each sensor's network statistic: average RSSi value
 type SensorNWStatData struct {
+	Timestamp int    `json:"timestamp"`
+	Gateway   string `json:"gateway"`
+	AvgRSSI   int    `json:"avg_rssi"`
+}
+
+// SensorNWStatAdvData is each sensor's network statistic detail
+type SensorNWStatAdvData struct {
 	Timestamp      int    `json:"timestamp"`
 	Gateway        string `json:"gateway"`
-	AvgRSSI        int    `json:"avg_rssi"`
 	MacTxTotalDiff int    `json:"mac_tx_total_diff"`
 	MacTxNoAckDiff int    `json:"mac_tx_noack_diff"`
 	AppPERSentDiff int    `json:"app_per_sent_diff"`
@@ -166,19 +172,38 @@ type SensorNWStatData struct {
 func GetNWStatByID(gatewayName, sensorID string, timeRange int64) ([]SensorNWStatData, error) {
 	var s SensorNWStatData
 	var rows *sql.Rows
-
 	sList := make([]SensorNWStatData, 0)
 
-	rows, err = db.Query(`select TIMESTAMP, GATEWAY_NAME, AVG_RSSI, MAC_TX_TOTAL_DIFF,
-		MAC_TX_NOACK_DIFF,APP_PER_SENT_DIFF,APP_PER_LOST_DIFF from NW_DATA_SET_PER_UCONN 
-		where GATEWAY_NAME=? and SENSOR_ID=? and TIMESTAMP>=?`, gatewayName, sensorID, timeRange)
+	rows, err = db.Query(`select TIMESTAMP, GATEWAY_NAME, AVG_RSSI from NW_DATA_SET_PER_UCONN 
+			where GATEWAY_NAME=? and SENSOR_ID=? and TIMESTAMP>=?`, gatewayName, sensorID, timeRange)
 	if err != nil {
 		return sList, err
 	}
 	defer rows.Close()
 
 	for rows.Next() {
-		rows.Scan(&s.Timestamp, &s.Gateway, &s.AvgRSSI, &s.MacTxTotalDiff, &s.MacTxNoAckDiff,
+		rows.Scan(&s.Timestamp, &s.Gateway, &s.AvgRSSI)
+		sList = append(sList, s)
+	}
+
+	return sList, nil
+}
+
+func GetNWStatAdvByID(gatewayName, sensorID string, timeRange int64) ([]SensorNWStatAdvData, error) {
+	var s SensorNWStatAdvData
+	var rows *sql.Rows
+	sList := make([]SensorNWStatAdvData, 0)
+
+	rows, err = db.Query(`select TIMESTAMP, GATEWAY_NAME, MAC_TX_TOTAL_DIFF,
+			MAC_TX_NOACK_DIFF,APP_PER_SENT_DIFF,APP_PER_LOST_DIFF from NW_DATA_SET_PER_UCONN 
+			where GATEWAY_NAME=? and SENSOR_ID=? and TIMESTAMP>=?`, gatewayName, sensorID, timeRange)
+	if err != nil {
+		return sList, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		rows.Scan(&s.Timestamp, &s.Gateway, &s.MacTxTotalDiff, &s.MacTxNoAckDiff,
 			&s.AppPERSentDiff, &s.AppPERLostDiff)
 		sList = append(sList, s)
 	}
