@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
@@ -35,7 +36,7 @@ func handle(w http.ResponseWriter, r *http.Request) {
 		Error.Println(err)
 		return
 	}
-	
+
 	var msg json.RawMessage
 	d := data{Msg: &msg}
 	err = json.Unmarshal(body, &d)
@@ -113,16 +114,15 @@ func handle(w http.ResponseWriter, r *http.Request) {
 
 func handleTopologyData(topo topology, gwn string) {
 	t := time.Now()
-	datetime := t.Format("2006-01-02 15:04:05")
 	timestamp := t.UnixNano() / 1e6
 
-	stmt, err := db.Prepare(`INSERT INTO TOPOLOGY_DATA(DATETIME, TIMESTAMP, GATEWAY_NAME, SENSOR_ID, ADDRESS,
-		PARENT, EUI64, GPS_Lat, GPS_Lon, TYPE, POWER) VALUES(?,?,?,?,?,?,?,?,?,?,?)`)
+	stmt, err := db.Prepare(`INSERT INTO TOPOLOGY_DATA(TIMESTAMP, GATEWAY_NAME, SENSOR_ID, ADDRESS,
+		PARENT, EUI64, GPS_Lat, GPS_Lon, TYPE, POWER) VALUES(?,?,?,?,?,?,?,?,?,?)`)
 	if err != nil {
 		Error.Println(err)
 	}
 
-	_, err = stmt.Exec(datetime, timestamp, gwn, topo.Data.ID, topo.Data.Address,
+	_, err = stmt.Exec(timestamp, gwn, topo.Data.ID, topo.Data.Address,
 		topo.Data.Parent, topo.Data.Eui64, topo.Data.GPS[0], topo.Data.GPS[1], topo.Data.Type, topo.Data.Power)
 	if err != nil {
 		Error.Panicln(err)
@@ -138,18 +138,17 @@ func handleNodesData(n []node, gwn string) {
 }
 func handleSensorData(s sensor, gwn string) {
 	t := time.Now()
-	datetime := t.Format("2006-01-02 15:04:05")
 	timestamp := t.UnixNano() / 1e6
 
-	stmt, err := db.Prepare(`INSERT INTO SENSOR_DATA (DATETIME, TIMESTAMP, GATEWAY_NAME, SENSOR_ID, TEMP, 
+	stmt, err := db.Prepare(`INSERT INTO SENSOR_DATA (TIMESTAMP, GATEWAY_NAME, SENSOR_ID, TEMP, 
 		RHUM, LUX, PRESS, ACCELX, ACCELY, ACCELZ, LED, EH, EH1, CC2650_ACTIVE, CC2650_SLEEP,RF_TX, RF_RX, 
 		MSP432_ACTIVE, MSP432_SLEEP, GPSEN_ACTIVE, GPSEN_SLEEP, OTHERS, SEQUENCE, ASN_STAMP1, ASN_STAMP2, CHANNEL, BAT, LATENCY) 
-		VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
+		VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
 	if err != nil {
 		Error.Println(err)
 	}
 
-	_, err = stmt.Exec(datetime, timestamp, gwn, s.ID, s.Data.Temp, s.Data.Rhum, s.Data.Lux, s.Data.Press,
+	_, err = stmt.Exec(timestamp, gwn, s.ID, s.Data.Temp, s.Data.Rhum, s.Data.Lux, s.Data.Press,
 		s.Data.Accelx, s.Data.Accely, s.Data.Accelz, s.Data.LED, s.Data.Eh, s.Data.Eh1, s.Data.CC2650Active, s.Data.CC2650Sleep,
 		s.Data.RFTx, s.Data.RFRx, s.Data.MSP432Active, s.Data.MSP432Sleep, s.Data.GPSEnActive, s.Data.GPSEnSleep, s.Data.Others,
 		s.Data.Sequence, s.Data.ASNStamp1, s.Data.ASNStamp2, s.Data.Channel, s.Data.Bat, s.Data.Latency)
@@ -159,25 +158,44 @@ func handleSensorData(s sensor, gwn string) {
 }
 func handleNetworkData0(n0 network0, gwn string) {
 	t := time.Now()
-	datetime := t.Format("2006-01-02 15:04:05")
 	timestamp := t.UnixNano() / 1e6
 
-	stmt, err := db.Prepare(`INSERT INTO NW_DATA_SET_PER_UCONN(DATETIME, TIMESTAMP, GATEWAY_NAME, SENSOR_ID, 
+	stmt1, err := db.Prepare(`INSERT INTO NW_DATA_SET_PER_UCONN(TIMESTAMP, GATEWAY_NAME, SENSOR_ID, 
 		CHANNEL_INFO, AVG_RSSI, APP_PER_SENT_LAST_SEQ, APP_PER_SENT, APP_PER_SENT_LOST, TX_FAIL, TX_NOACK, 
 		TX_TOTAL, RX_TOTAL, TX_LENGTH_TOTAL, MAC_TX_NOACK_DIFF, MAC_TX_TOTAL_DIFF, MAC_RX_TOTAL_DIFF, 
 		MAC_TX_LENGTH_TOTAL_DIFF, APP_PER_LOST_DIFF, APP_PER_SENT_DIFF) 
-		VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
+		VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
 	if err != nil {
 		Error.Println(err)
 	}
-	// compute average rssi
+	stmt2, err := db.Prepare(`INSERT INTO NW_DATA_SET_PER_CHINFO(TIMESTAMP, GATEWAY_NAME, SENSOR_ID, 
+		CHANNELS, RSSI, RxRSSI, TxNoAck, TxTotal) 
+		VALUES(?,?,?,?,?,?,?,?)`)
+	if err != nil {
+		Error.Println(err)
+	}
+	// compute average rssi and store avaliable channel info into NW_DATA_SET_PER_CHINFO
+	// save 95% space than in text field
 	avgRSSi := 0
 	cnt := 0
 	tmp := 0
-	for _, v := range n0.Data.Ch {
+
+	chList := ""
+	rssiList := ""
+	rxRSSiList := ""
+	txNoAckList := ""
+	txTotalList := ""
+
+	for k, v := range n0.Data.Ch {
 		if v.RSSI != 0 {
 			cnt++
 			tmp += v.RSSI
+
+			chList += k + ","
+			rssiList += strconv.Itoa(v.RSSI) + ","
+			rxRSSiList += strconv.Itoa(v.RxRSSI) + ","
+			txNoAckList += strconv.Itoa(v.TxNoAck) + ","
+			txTotalList += strconv.Itoa(v.TxTotal) + ","
 		}
 	}
 	avgRSSi = tmp / cnt
@@ -186,9 +204,14 @@ func handleNetworkData0(n0 network0, gwn string) {
 		Error.Println(err)
 	}
 
-	_, err = stmt.Exec(datetime, timestamp, gwn, n0.ID, channelInfo, avgRSSi, n0.Data.AppPER.LastSeq, n0.Data.AppPER.Sent, n0.Data.AppPER.Lost,
-		n0.Data.TxFail, n0.Data.TxNoAck, n0.Data.TxTotal, n0.Data.RxTotal, n0.Data.TxLengthTotal, n0.Data.MacTxNoAckDiff,
-		n0.Data.MacTxTotalDiff, n0.Data.MacRxTotalDiff, n0.Data.MacTxLengthTotalDiff, n0.Data.AppLostDiff, n0.Data.AppSentDiff)
+	_, err = stmt1.Exec(timestamp, gwn, n0.ID, channelInfo, avgRSSi, n0.Data.AppPER.LastSeq,
+		n0.Data.AppPER.Sent, n0.Data.AppPER.Lost, n0.Data.TxFail, n0.Data.TxNoAck, n0.Data.TxTotal,
+		n0.Data.RxTotal, n0.Data.TxLengthTotal, n0.Data.MacTxNoAckDiff, n0.Data.MacTxTotalDiff,
+		n0.Data.MacRxTotalDiff, n0.Data.MacTxLengthTotalDiff, n0.Data.AppLostDiff, n0.Data.AppSentDiff)
+	if err != nil {
+		Error.Println(err)
+	}
+	_, err = stmt2.Exec(timestamp, gwn, n0.ID, chList, rssiList, rxRSSiList, txNoAckList, txTotalList)
 	if err != nil {
 		Error.Println(err)
 	}
@@ -196,18 +219,17 @@ func handleNetworkData0(n0 network0, gwn string) {
 
 func handleNetworkData1(n1 network1, gwn string) {
 	t := time.Now()
-	datetime := t.Format("2006-01-02 15:04:05")
 	timestamp := t.UnixNano() / 1e6
 
-	stmt, err := db.Prepare(`INSERT INTO NW_DATA_SET_INFO(DATETIME, TIMESTAMP, GATEWAY_NAME, SENSOR_ID, 
+	stmt, err := db.Prepare(`INSERT INTO NW_DATA_SET_INFO(TIMESTAMP, GATEWAY_NAME, SENSOR_ID, 
 		CUR_PARENT, NUM_PARENT_CHANGE, NUM_SYNC_LOST, AVG_DRIFT, MAX_DRIFT, NUM_MAC_OUT_OF_BUFFER, NUM_UIP_RX_LOST, 
 		NUM_LOWPAN_TX_LOST, NUM_LOWPAN_RX_LOST, NUM_COAP_RX_LOST, NUM_COAP_OBS_DIS) 
-		VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
+		VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
 	if err != nil {
 		Error.Println(err)
 	}
 
-	_, err = stmt.Exec(datetime, timestamp, gwn, n1.ID, n1.Data.CurParent, n1.Data.NumParentChange,
+	_, err = stmt.Exec(timestamp, gwn, n1.ID, n1.Data.CurParent, n1.Data.NumParentChange,
 		n1.Data.NumSyncLost, n1.Data.AvgDrift, n1.Data.MaxDrift, n1.Data.NumMacOutOfBuffer, n1.Data.NumUipRxLost,
 		n1.Data.NumLowpanTxLost, n1.Data.NumLowpanRxLost, n1.Data.NumCoapRxLost, n1.Data.NumCoapObsDis)
 	if err != nil {
@@ -217,16 +239,15 @@ func handleNetworkData1(n1 network1, gwn string) {
 
 func handleNetworkData2(n2 network2, gwn string) {
 	t := time.Now()
-	datetime := t.Format("2006-01-02 15:04:05")
 	timestamp := t.UnixNano() / 1e6
 
-	stmt, err := db.Prepare(`INSERT INTO NW_DATA_SET_LATENCY(DATETIME, TIMESTAMP, GATEWAY_NAME, SENSOR_ID, RTT) 
-		VALUES(?,?,?,?,?)`)
+	stmt, err := db.Prepare(`INSERT INTO NW_DATA_SET_LATENCY(TIMESTAMP, GATEWAY_NAME, SENSOR_ID, RTT) 
+		VALUES(?,?,?,?)`)
 	if err != nil {
 		Error.Println(err)
 	}
 
-	_, err = stmt.Exec(datetime, timestamp, gwn, n2.ID, n2.RTT)
+	_, err = stmt.Exec(timestamp, gwn, n2.ID, n2.RTT)
 	if err != nil {
 		Error.Println(err)
 	}
@@ -252,9 +273,8 @@ func init() {
 
 	// TOPOLOGY_DATA
 	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS TOPOLOGY_DATA (
-			DATETIME DATETIME,
 			TIMESTAMP BIGINT,
-			GATEWAY_NAME VARCHAR(64) NOT NULL,
+			GATEWAY_NAME VARCHAR(16) NOT NULL,
 			SENSOR_ID SMALLINT UNSIGNED NOT NULL,
 			ADDRESS VARCHAR(64) NOT NULL,
 			PARENT SMALLINT,
@@ -270,9 +290,8 @@ func init() {
 
 	// SENSOR_DATA
 	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS SENSOR_DATA (
-		DATETIME DATETIME,
 		TIMESTAMP BIGINT,
-		GATEWAY_NAME VARCHAR(64) NOT NULL,
+		GATEWAY_NAME VARCHAR(16) NOT NULL,
 		SENSOR_ID SMALLINT UNSIGNED NOT NULL,
 		TEMP SMALLINT UNSIGNED NOT NULL,
 		RHUM SMALLINT UNSIGNED NOT NULL,
@@ -306,9 +325,8 @@ func init() {
 
 	// NW_DATA_SET_PER_UCONN or network_data_0
 	db.Exec(`CREATE TABLE IF NOT EXISTS NW_DATA_SET_PER_UCONN (
-		DATETIME DATETIME,
 		TIMESTAMP BIGINT,
-		GATEWAY_NAME VARCHAR(64) NOT NULL,
+		GATEWAY_NAME VARCHAR(16) NOT NULL,
 		SENSOR_ID SMALLINT UNSIGNED NOT NULL,
 		CHANNEL_INFO TEXT,
 		AVG_RSSI SMALLINT NOT NULL,
@@ -319,7 +337,7 @@ func init() {
 		TX_NOACK SMALLINT NOT NULL,
 		TX_TOTAL SMALLINT NOT NULL,
 		RX_TOTAL SMALLINT NOT NULL,
-		TX_LENGTH_TOTAL SMALLINT NOT NULL,
+		TX_LENGTH_TOTAL INT NOT NULL,
 		MAC_TX_NOACK_DIFF SMALLINT NOT NULL,
 		MAC_TX_TOTAL_DIFF SMALLINT NOT NULL,
 		MAC_RX_TOTAL_DIFF SMALLINT NOT NULL,
@@ -331,11 +349,25 @@ func init() {
 	}
 	Info.Println("Table NW_DATA_SET_PER_UCONN ready")
 
+	// CHANNEL_INFO in NW_DATA_SET_PER_UCONN or network_data_0
+	db.Exec(`CREATE TABLE IF NOT EXISTS NW_DATA_SET_PER_CHINFO (
+		TIMESTAMP BIGINT,
+		GATEWAY_NAME VARCHAR(16) NOT NULL,
+		SENSOR_ID SMALLINT UNSIGNED NOT NULL,
+		CHANNELS VARCHAR(64) NOT NULL,
+		RSSI VARCHAR(128) NOT NULL,
+		RxRSSI  VARCHAR(128) NOT NULL,
+		TxNoAck VARCHAR(128) NOT NULL,
+		TxTotal VARCHAR(64) NOT NULL,);`)
+	if err != nil {
+		Error.Panicln(err)
+	}
+	Info.Println("Table NW_DATA_SET_PER_CHINFO ready")
+
 	// NW_DATA_SET_INFO or network_data_1
 	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS NW_DATA_SET_INFO (
-		DATETIME DATETIME,
 		TIMESTAMP BIGINT,
-		GATEWAY_NAME VARCHAR(64) NOT NULL,
+		GATEWAY_NAME VARCHAR(16) NOT NULL,
 		SENSOR_ID SMALLINT UNSIGNED NOT NULL,
 		CUR_PARENT SMALLINT UNSIGNED NOT NULL,
 		NUM_PARENT_CHANGE SMALLINT UNSIGNED NOT NULL,
@@ -355,9 +387,8 @@ func init() {
 
 	// NW_DATA_SET_LATENCY or network_data_2
 	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS NW_DATA_SET_LATENCY (
-		DATETIME DATETIME,
 		TIMESTAMP BIGINT,
-		GATEWAY_NAME VARCHAR(64) NOT NULL,
+		GATEWAY_NAME VARCHAR(16) NOT NULL,
 		SENSOR_ID SMALLINT UNSIGNED NOT NULL,
 		RTT FLOAT NOT NULL);`)
 	if err != nil {
@@ -377,7 +408,7 @@ type (
 
 	gateway struct {
 		Type string `json:"type"`
-		Msg struct {
+		Msg  struct {
 			Name    string     `json:"name"`
 			Address string     `json:"address"`
 			GPS     [2]float64 `json:"gps"`
@@ -387,7 +418,7 @@ type (
 
 	heart struct {
 		Type string `json:"type"`
-		Msg struct {
+		Msg  struct {
 			Name    string     `json:"name"`
 			Address string     `json:"address"`
 			GPS     [2]float64 `json:"gps"`
