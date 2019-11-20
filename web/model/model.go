@@ -102,30 +102,52 @@ type NWStatData struct {
 
 func GetNWStat(gatewayName string, timeRange int64) ([]NWStatData, error) {
 	var n NWStatData
-	var rows *sql.Rows
+	// query NW_DATA_SET_PER_UCONN
+	var rows1 *sql.Rows
+	// query NW_DATA_SET_LATENCY
+	var rows2 *sql.Rows
 	nList := make([]NWStatData, 0)
 
 	if gatewayName == "any" {
-		rows, err = db.Query(`select NW_DATA_SET_LATENCY.SENSOR_ID, NW_DATA_SET_LATENCY.GATEWAY_NAME, AVG(RTT), 
-		AVG(MAC_TX_TOTAL_DIFF),AVG(MAC_TX_NOACK_DIFF),AVG(APP_PER_SENT_DIFF),AVG(APP_PER_LOST_DIFF) 
-		from NW_DATA_SET_LATENCY inner join NW_DATA_SET_PER_UCONN on NW_DATA_SET_LATENCY.TIMESTAMP>=? and
-		NW_DATA_SET_LATENCY.SENSOR_ID=NW_DATA_SET_PER_UCONN.SENSOR_ID group by SENSOR_ID`, timeRange)
+		rows1, err = db.Query(`select SENSOR_ID, GATEWAY_NAME, AVG(MAC_TX_TOTAL_DIFF),
+		AVG(MAC_TX_NOACK_DIFF), AVG(APP_PER_SENT_DIFF),AVG(APP_PER_LOST_DIFF) from NW_DATA_SET_PER_UCONN 
+		where TIMESTAMP>=? group by SENSOR_ID`, timeRange)
+		if err != nil {
+			return nList, err
+		}
+		rows2, err = db.Query(`select SENSOR_ID, GATEWAY_NAME, AVG(RTT) from
+			NW_DATA_SET_LATENCY where TIMESTAMP>=? group by SENSOR_ID`, timeRange)
 	} else {
-		rows, err = db.Query(`select NW_DATA_SET_LATENCY.SENSOR_ID, NW_DATA_SET_LATENCY.GATEWAY_NAME, AVG(RTT), 
-		AVG(MAC_TX_TOTAL_DIFF),AVG(MAC_TX_NOACK_DIFF),AVG(APP_PER_SENT_DIFF),AVG(APP_PER_LOST_DIFF) 
-		from NW_DATA_SET_LATENCY inner join NW_DATA_SET_PER_UCONN on NW_DATA_SET_LATENCY.GATEWAY_NAME=? and
-		NW_DATA_SET_LATENCY.TIMESTAMP>=? and NW_DATA_SET_LATENCY.SENSOR_ID=NW_DATA_SET_PER_UCONN.SENSOR_ID group by SENSOR_ID`, gatewayName, timeRange)
+		rows1, err = db.Query(`select SENSOR_ID, GATEWAY_NAME, AVG(MAC_TX_TOTAL_DIFF),
+		AVG(MAC_TX_NOACK_DIFF),AVG(APP_PER_SENT_DIFF),AVG(APP_PER_LOST_DIFF) from NW_DATA_SET_PER_UCONN 
+		where GATEWAY_NAME=? and TIMESTAMP>=? group by SENSOR_ID`, gatewayName, timeRange)
+		if err != nil {
+			return nList, err
+		}
+		rows2, err = db.Query(`select SENSOR_ID, GATEWAY_NAME, AVG(RTT) from
+			NW_DATA_SET_LATENCY where GATEWAY_NAME=? and TIMESTAMP>=? group by SENSOR_ID`, gatewayName, timeRange)
 	}
 	if err != nil {
 		return nList, err
 	}
-	defer rows.Close()
+	defer rows1.Close()
+	// defer rows2.Close()
 
-	for rows.Next() {
-		rows.Scan(&n.SensorID, &n.Gateway, &n.AVGRTT, &n.AvgMACTxTotalDiff,
-			&n.AvgMACTxNoACKDiff, &n.AvgAPPPERSentDiff,
-			&n.AvgAPPPERLostDiff)
+	for rows1.Next() {
+		rows1.Scan(&n.SensorID, &n.Gateway, &n.AvgMACTxTotalDiff, &n.AvgMACTxNoACKDiff,
+			&n.AvgAPPPERSentDiff, &n.AvgAPPPERLostDiff)
 		nList = append(nList, n)
+	}
+
+	// merge
+	for rows2.Next() {
+		rows2.Scan(&n.SensorID, &n.Gateway, &n.AVGRTT)
+		for i, v := range nList {
+			if v.SensorID == n.SensorID && v.Gateway == n.Gateway {
+				nList[i].AVGRTT = n.AVGRTT
+				break
+			}
+		}
 	}
 
 	return nList, nil
