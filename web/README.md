@@ -97,7 +97,7 @@ Example:
 
 Get detail network statistic data for one sensor under a gateway.
 
-Params: `range, advanced`
+Params: `range`
 
 Example:
 
@@ -111,34 +111,11 @@ advanced=0
         "gateway": "UCONN_GW",
         "ch": null,
         "avg_rssi": -44,
-    },
-    ...
-]
-```
-
-advanced=1
-
-```text
-"data": [
-    ...
-    {
-        "timestamp": 1573077385010,
-        "gateway": "UCONN_GW",
-        "ch": {
-            // 64 channels, 0-63
-            "0": {
-                "rssi": -46,
-                "rx_rssi": 0,
-                "tx_noack": 0,
-                "tx_total": 0
-            },
-            ...
-        },
         "mac_tx_total_diff": 35,
         "mac_tx_noack_diff": 1,
         "app_per_sent_diff": 12,
-        "app_per_lost_diff": 0
-    }
+        "app_per_lost_diff": 0,
+    },
     ...
 ]
 ```
