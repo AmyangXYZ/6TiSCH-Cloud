@@ -164,7 +164,7 @@ func handleNetworkData0(n0 network0, gwn string) {
 		CHANNEL_INFO, AVG_RSSI, APP_PER_SENT_LAST_SEQ, APP_PER_SENT, APP_PER_SENT_LOST, TX_FAIL, TX_NOACK, 
 		TX_TOTAL, RX_TOTAL, TX_LENGTH_TOTAL, MAC_TX_NOACK_DIFF, MAC_TX_TOTAL_DIFF, MAC_RX_TOTAL_DIFF, 
 		MAC_TX_LENGTH_TOTAL_DIFF, APP_PER_LOST_DIFF, APP_PER_SENT_DIFF) 
-		VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
+		VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
 	if err != nil {
 		Error.Println(err)
 	}
@@ -199,12 +199,8 @@ func handleNetworkData0(n0 network0, gwn string) {
 		}
 	}
 	avgRSSi = tmp / cnt
-	channelInfo, err := json.Marshal(n0.Data.Ch)
-	if err != nil {
-		Error.Println(err)
-	}
 
-	_, err = stmt1.Exec(timestamp, gwn, n0.ID, channelInfo, avgRSSi, n0.Data.AppPER.LastSeq,
+	_, err = stmt1.Exec(timestamp, gwn, n0.ID, avgRSSi, n0.Data.AppPER.LastSeq,
 		n0.Data.AppPER.Sent, n0.Data.AppPER.Lost, n0.Data.TxFail, n0.Data.TxNoAck, n0.Data.TxTotal,
 		n0.Data.RxTotal, n0.Data.TxLengthTotal, n0.Data.MacTxNoAckDiff, n0.Data.MacTxTotalDiff,
 		n0.Data.MacRxTotalDiff, n0.Data.MacTxLengthTotalDiff, n0.Data.AppLostDiff, n0.Data.AppSentDiff)
