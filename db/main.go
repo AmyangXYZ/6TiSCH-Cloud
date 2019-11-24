@@ -112,6 +112,9 @@ func handleTopologyData(topo topology, gwn string) {
 	}
 }
 
+func handleHeartBeatData(h heart) {
+}
+
 func handleSensorData(s sensor, gwn string) {
 	t := time.Now()
 	timestamp := t.UnixNano() / 1e6
@@ -132,7 +135,7 @@ func handleSensorData(s sensor, gwn string) {
 		Error.Println(stmt1, err)
 	}
 
-	stmt2, err := db.Prepare(`UPDATE TOPOLOGY_DATA SET LAST_SEEN=? where GATEWAY_NAME=? and SENSOR_ID=? or SENSOR_ID=1`)
+	stmt2, err := db.Prepare(`UPDATE TOPOLOGY_DATA SET LAST_SEEN=? where (GATEWAY_NAME=? and SENSOR_ID=?) or SENSOR_ID=1`)
 	if err != nil {
 		Error.Println(stmt2, err)
 	}
