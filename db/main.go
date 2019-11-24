@@ -48,14 +48,6 @@ func handle(w http.ResponseWriter, r *http.Request) {
 	gwn := d.Gateway.Msg.Name
 
 	switch d.Type {
-	case "heart":
-		var h heart
-		err = json.Unmarshal(msg, &h)
-		if err != nil {
-			Error.Println(err)
-			return
-		}
-		handleHeartBeatData(h)
 	case "topology_data":
 		var t topology
 		err = json.Unmarshal(msg, &t)
@@ -64,14 +56,6 @@ func handle(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		handleTopologyData(t, gwn)
-	case "nodes_data":
-		var n []node
-		err = json.Unmarshal(msg, &n)
-		if err != nil {
-			Error.Println(err)
-			return
-		}
-		handleNodesData(n, gwn)
 	case "sensor_type_0":
 		var s sensor
 		err = json.Unmarshal(msg, &s)
@@ -128,23 +112,6 @@ func handleTopologyData(topo topology, gwn string) {
 	}
 }
 
-func handleHeartBeatData(h heart) {
-	t := time.Now()
-	timestamp := t.UnixNano() / 1e6
-
-	stmt, err := db.Prepare(`UPDATE TOPOLOGY_DATA SET LAST_SEEN=? where GATEWAY_NAME=? and SENSOR_ID=1`)
-	if err != nil {
-		Error.Println(err)
-	}
-	_, err = stmt.Exec(timestamp, h.Msg.Name)
-	if err != nil {
-		Error.Println(err)
-	}
-}
-
-func handleNodesData(n []node, gwn string) {
-	// fmt.Println(n)
-}
 func handleSensorData(s sensor, gwn string) {
 	t := time.Now()
 	timestamp := t.UnixNano() / 1e6
@@ -165,7 +132,7 @@ func handleSensorData(s sensor, gwn string) {
 		Error.Println(stmt1, err)
 	}
 
-	stmt2, err := db.Prepare(`UPDATE TOPOLOGY_DATA SET LAST_SEEN=? where GATEWAY_NAME=? and SENSOR_ID=?`)
+	stmt2, err := db.Prepare(`UPDATE TOPOLOGY_DATA SET LAST_SEEN=? where GATEWAY_NAME=? and SENSOR_ID=? or SENSOR_ID=1`)
 	if err != nil {
 		Error.Println(stmt2, err)
 	}
