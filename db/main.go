@@ -124,18 +124,21 @@ func handleTopologyData(topo topology, gwn string) {
 	_, err = stmt.Exec(timestamp, timestamp, gwn, topo.Data.ID, topo.Data.Address,
 		topo.Data.Parent, topo.Data.Eui64, topo.Data.GPS[0], topo.Data.GPS[1], topo.Data.Type, topo.Data.Power)
 	if err != nil {
-		Error.Panicln(err)
+		Error.Println(err)
 	}
 }
 
-func handleHeartBeatData(h heart, gwn string) {
+func handleHeartBeatData(h heart) {
 	t := time.Now()
 	timestamp := t.UnixNano() / 1e6
 
 	stmt, err := db.Prepare(`UPDATE TOPOLOGY_DATA SET LAST_SEEN=? where GATEWAY_NAME=? and SENSOR_ID=1`)
-	_, err = stmt.Exec(timestamp, gwn)
 	if err != nil {
-		Error.Panicln(err)
+		Error.Println(err)
+	}
+	_, err = stmt.Exec(timestamp, h.Msg.Name)
+	if err != nil {
+		Error.Println(err)
 	}
 }
 
