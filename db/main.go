@@ -132,7 +132,7 @@ func handleHeartBeatData(h heart, gwn string) {
 	t := time.Now()
 	timestamp := t.UnixNano() / 1e6
 
-	stmt, err := db.Prepare(`UPDATE TOPOLOGY_DATA SET LAST_SEEN=? where GATEWAY_NAME=?`)
+	stmt, err := db.Prepare(`UPDATE TOPOLOGY_DATA SET LAST_SEEN=? where GATEWAY_NAME=? and SENSOR_ID=1`)
 	_, err = stmt.Exec(timestamp, gwn)
 	if err != nil {
 		Error.Panicln(err)
