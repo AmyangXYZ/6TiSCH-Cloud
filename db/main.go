@@ -20,8 +20,7 @@ var (
 	infoHandle  = os.Stdout
 	errorHandle = os.Stdout
 
-	db     *sql.DB
-	dbAddr = "root:1234@tcp(127.0.0.1:3306)/6tisch"
+	db *sql.DB
 )
 
 func main() {
@@ -116,10 +115,10 @@ func handleTopologyData(topo topology, gwn string) {
 	t := time.Now()
 	timestamp := t.UnixNano() / 1e6
 
-	stmt, err := db.Prepare(`INSERT INTO TOPOLOGY_DATA(TIMESTAMP, GATEWAY_NAME, SENSOR_ID, ADDRESS,
+	stmt, err := db.Prepare(`INSERT INTO TOPOLOGY_DATA(FIRST_APPEAR, GATEWAY_NAME, SENSOR_ID, ADDRESS,
 		PARENT, EUI64, GPS_Lat, GPS_Lon, TYPE, POWER) VALUES(?,?,?,?,?,?,?,?,?,?)`)
 	if err != nil {
-		Error.Println(err)
+		Error.Println(stmt, err)
 	}
 
 	_, err = stmt.Exec(timestamp, gwn, topo.Data.ID, topo.Data.Address,
@@ -130,7 +129,14 @@ func handleTopologyData(topo topology, gwn string) {
 }
 
 func handleHeartBeatData(h heart, gwn string) {
-	// fmt.Println(n)
+	t := time.Now()
+	timestamp := t.UnixNano() / 1e6
+
+	stmt, err := db.Prepare(`UPDATE TOPOLOGY_DATA SET LAST_SEEN=? where GATEWAY_NAME=?`)
+	_, err = stmt.Exec(timestamp, gwn)
+	if err != nil {
+		Error.Panicln(err)
+	}
 }
 
 func handleNodesData(n []node, gwn string) {
@@ -140,20 +146,29 @@ func handleSensorData(s sensor, gwn string) {
 	t := time.Now()
 	timestamp := t.UnixNano() / 1e6
 
-	stmt, err := db.Prepare(`INSERT INTO SENSOR_DATA (TIMESTAMP, GATEWAY_NAME, SENSOR_ID, TEMP, 
+	stmt1, err := db.Prepare(`INSERT INTO SENSOR_DATA (TIMESTAMP, GATEWAY_NAME, SENSOR_ID, TEMP, 
 		RHUM, LUX, PRESS, ACCELX, ACCELY, ACCELZ, LED, EH, EH1, CC2650_ACTIVE, CC2650_SLEEP,RF_TX, RF_RX, 
 		MSP432_ACTIVE, MSP432_SLEEP, GPSEN_ACTIVE, GPSEN_SLEEP, OTHERS, SEQUENCE, ASN_STAMP1, ASN_STAMP2, CHANNEL, BAT, LATENCY) 
 		VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
 	if err != nil {
-		Error.Println(err)
+		Error.Println(stmt1, err)
 	}
 
-	_, err = stmt.Exec(timestamp, gwn, s.ID, s.Data.Temp, s.Data.Rhum, s.Data.Lux, s.Data.Press,
+	_, err = stmt1.Exec(timestamp, gwn, s.ID, s.Data.Temp, s.Data.Rhum, s.Data.Lux, s.Data.Press,
 		s.Data.Accelx, s.Data.Accely, s.Data.Accelz, s.Data.LED, s.Data.Eh, s.Data.Eh1, s.Data.CC2650Active, s.Data.CC2650Sleep,
 		s.Data.RFTx, s.Data.RFRx, s.Data.MSP432Active, s.Data.MSP432Sleep, s.Data.GPSEnActive, s.Data.GPSEnSleep, s.Data.Others,
 		s.Data.Sequence, s.Data.ASNStamp1, s.Data.ASNStamp2, s.Data.Channel, s.Data.Bat, s.Data.Latency)
 	if err != nil {
-		Error.Println(err)
+		Error.Println(stmt1, err)
+	}
+
+	stmt2, err := db.Prepare(`UPDATE TOPOLOGY_DATA SET LAST_SEEN=? where GATEWAY_NAME=? and SENSOR_ID=?`)
+	if err != nil {
+		Error.Println(stmt2, err)
+	}
+	_, err = stmt2.Exec(timestamp, gwn, s.ID)
+	if err != nil {
+		Error.Println(stmt2, err)
 	}
 }
 func handleNetworkData0(n0 network0, gwn string) {
@@ -161,18 +176,18 @@ func handleNetworkData0(n0 network0, gwn string) {
 	timestamp := t.UnixNano() / 1e6
 
 	stmt1, err := db.Prepare(`INSERT INTO NW_DATA_SET_PER_UCONN(TIMESTAMP, GATEWAY_NAME, SENSOR_ID, 
-		CHANNEL_INFO, AVG_RSSI, APP_PER_SENT_LAST_SEQ, APP_PER_SENT, APP_PER_SENT_LOST, TX_FAIL, TX_NOACK, 
+		AVG_RSSI, APP_PER_SENT_LAST_SEQ, APP_PER_SENT, APP_PER_SENT_LOST, TX_FAIL, TX_NOACK, 
 		TX_TOTAL, RX_TOTAL, TX_LENGTH_TOTAL, MAC_TX_NOACK_DIFF, MAC_TX_TOTAL_DIFF, MAC_RX_TOTAL_DIFF, 
 		MAC_TX_LENGTH_TOTAL_DIFF, APP_PER_LOST_DIFF, APP_PER_SENT_DIFF) 
 		VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
 	if err != nil {
-		Error.Println(err)
+		Error.Println(stmt1, err)
 	}
 	stmt2, err := db.Prepare(`INSERT INTO NW_DATA_SET_PER_CHINFO(TIMESTAMP, GATEWAY_NAME, SENSOR_ID, 
 		CHANNELS, RSSI, RX_RSSI, TX_NOACK, TX_TOTAL) 
 		VALUES(?,?,?,?,?,?,?,?)`)
 	if err != nil {
-		Error.Println(err)
+		Error.Println(stmt2, err)
 	}
 	// compute average rssi and store avaliable channel info into NW_DATA_SET_PER_CHINFO
 	// save 95% space than in text field
@@ -205,11 +220,11 @@ func handleNetworkData0(n0 network0, gwn string) {
 		n0.Data.RxTotal, n0.Data.TxLengthTotal, n0.Data.MacTxNoAckDiff, n0.Data.MacTxTotalDiff,
 		n0.Data.MacRxTotalDiff, n0.Data.MacTxLengthTotalDiff, n0.Data.AppLostDiff, n0.Data.AppSentDiff)
 	if err != nil {
-		Error.Println(err)
+		Error.Println(stmt1, err)
 	}
 	_, err = stmt2.Exec(timestamp, gwn, n0.ID, chList, rssiList, rxRSSiList, txNoAckList, txTotalList)
 	if err != nil {
-		Error.Println(err)
+		Error.Println(stmt2, err)
 	}
 }
 
@@ -222,14 +237,14 @@ func handleNetworkData1(n1 network1, gwn string) {
 		NUM_LOWPAN_TX_LOST, NUM_LOWPAN_RX_LOST, NUM_COAP_RX_LOST, NUM_COAP_OBS_DIS) 
 		VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
 	if err != nil {
-		Error.Println(err)
+		Error.Println(stmt, err)
 	}
 
 	_, err = stmt.Exec(timestamp, gwn, n1.ID, n1.Data.CurParent, n1.Data.NumParentChange,
 		n1.Data.NumSyncLost, n1.Data.AvgDrift, n1.Data.MaxDrift, n1.Data.NumMacOutOfBuffer, n1.Data.NumUipRxLost,
 		n1.Data.NumLowpanTxLost, n1.Data.NumLowpanRxLost, n1.Data.NumCoapRxLost, n1.Data.NumCoapObsDis)
 	if err != nil {
-		Error.Println(err)
+		Error.Println(stmt, err)
 	}
 }
 
@@ -240,12 +255,12 @@ func handleNetworkData2(n2 network2, gwn string) {
 	stmt, err := db.Prepare(`INSERT INTO NW_DATA_SET_LATENCY(TIMESTAMP, GATEWAY_NAME, SENSOR_ID, RTT) 
 		VALUES(?,?,?,?)`)
 	if err != nil {
-		Error.Println(err)
+		Error.Println(stmt, err)
 	}
 
 	_, err = stmt.Exec(timestamp, gwn, n2.ID, n2.RTT)
 	if err != nil {
-		Error.Println(err)
+		Error.Println(stmt, err)
 	}
 }
 
@@ -254,6 +269,7 @@ func init() {
 	Info = log.New(infoHandle, "[*] INFO: ", log.Ldate|log.Ltime)
 	Error = log.New(errorHandle, "[!] ERROR: ", log.Ldate|log.Ltime|log.Lshortfile)
 
+	dbAddr := fmt.Sprintf("root:%s@tcp(127.0.0.1:3306)/6tisch", os.Getenv("DBPasswd"))
 	db, _ = sql.Open("mysql", dbAddr)
 	for {
 		if err := db.Ping(); err != nil {
@@ -269,7 +285,8 @@ func init() {
 
 	// TOPOLOGY_DATA
 	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS TOPOLOGY_DATA (
-			TIMESTAMP BIGINT,
+			FIRST_APPEAR BIGINT,
+			LAST_SEEN BIGINT,
 			GATEWAY_NAME VARCHAR(16) NOT NULL,
 			SENSOR_ID SMALLINT UNSIGNED NOT NULL,
 			ADDRESS VARCHAR(64) NOT NULL,
@@ -329,10 +346,10 @@ func init() {
 		APP_PER_SENT_LAST_SEQ SMALLINT NOT NULL,
 		APP_PER_SENT SMALLINT NOT NULL,
 		APP_PER_SENT_LOST SMALLINT NOT NULL,
-		TX_FAIL SMALLINT NOT NULL,
-		TX_NOACK SMALLINT NOT NULL,
-		TX_TOTAL SMALLINT NOT NULL,
-		RX_TOTAL SMALLINT NOT NULL,
+		TX_FAIL INT NOT NULL,
+		TX_NOACK INT NOT NULL,
+		TX_TOTAL INT NOT NULL,
+		RX_TOTAL INT NOT NULL,
 		TX_LENGTH_TOTAL INT NOT NULL,
 		MAC_TX_NOACK_DIFF SMALLINT NOT NULL,
 		MAC_TX_TOTAL_DIFF SMALLINT NOT NULL,

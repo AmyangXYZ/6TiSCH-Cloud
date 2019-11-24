@@ -10,11 +10,11 @@ import (
 
 var (
 	db     *sql.DB
-	dbAddr = "root:1234@tcp(127.0.0.1:3306)/6tisch"
 	err    error
 )
 
 func init() {
+	dbAddr := fmt.Sprintf("root:%s@tcp(127.0.0.1:3306)/6tisch", os.Getenv("DBPasswd"))
 	db, _ = sql.Open("mysql", dbAddr)
 	for {
 		if err := db.Ping(); err != nil {
@@ -49,7 +49,7 @@ func GetGateway(timeRange int64) ([]string, error) {
 	var gName string
 	gList := make([]string, 0)
 
-	rows, err := db.Query("select distinct GATEWAY_NAME from TOPOLOGY_DATA where TIMESTAMP>=?;", timeRange)
+	rows, err := db.Query("select distinct GATEWAY_NAME from TOPOLOGY_DATA where LAST_SEEN>=?;", timeRange)
 	if err != nil {
 		return gList, err
 	}
@@ -70,9 +70,9 @@ func GetTopology(gatewayName string, timeRange int64) ([]Node, error) {
 	nodeList := make([]Node, 0)
 
 	if gatewayName == "any" {
-		rows, err = db.Query("select * from TOPOLOGY_DATA where TIMESTAMP>=?", timeRange)
+		rows, err = db.Query("select * from TOPOLOGY_DATA where LAST_SEEN>=? group by SENSOR_ID", timeRange)
 	} else {
-		rows, err = db.Query("select * from TOPOLOGY_DATA where GATEWAY_NAME=? and TIMESTAMP>=?", gatewayName, timeRange)
+		rows, err = db.Query("select * from TOPOLOGY_DATA where GATEWAY_NAME=? and LAST_SEEN>=? group by SENSOR_ID", gatewayName, timeRange)
 	}
 	if err != nil {
 		return nodeList, err
