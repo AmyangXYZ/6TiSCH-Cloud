@@ -32,13 +32,14 @@ func init() {
 
 // Node info for topology.
 type Node struct {
-	Timestamp int    `json:"timestamp"`
-	Gateway   string `json:"gateway"`
-	SensorID  int    `json:"sensor_id"`
-	Address   string `json:"address"`
-	Parent    int    `json:"parent"`
-	Eui64     string `json:"eui64"`
-	Position  struct {
+	FirstAppear int    `json:"first_appear"`
+	LastSeen    int    `json:"last_seen"`
+	Gateway     string `json:"gateway"`
+	SensorID    int    `json:"sensor_id"`
+	Address     string `json:"address"`
+	Parent      int    `json:"parent"`
+	Eui64       string `json:"eui64"`
+	Position    struct {
 		Lat float64 `json:"lat"`
 		Lng float64 `json:"lng"`
 	} `json:"position"`
@@ -81,7 +82,7 @@ func GetTopology(gatewayName string, timeRange int64) ([]Node, error) {
 	defer rows.Close()
 
 	for rows.Next() {
-		rows.Scan(&n.LAST_SEEN, &n.Gateway, &n.SensorID,
+		rows.Scan(&n.FirstAppear, n.LastSeen, &n.Gateway, &n.SensorID,
 			&n.Address, &n.Parent, &n.Eui64, &n.Position.Lat, &n.Position.Lng, &n.Type, &n.Power)
 		nodeList = append(nodeList, n)
 	}
