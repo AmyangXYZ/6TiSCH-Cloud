@@ -81,7 +81,7 @@ func GetTopology(gatewayName string, timeRange int64) ([]Node, error) {
 	defer rows.Close()
 
 	for rows.Next() {
-		rows.Scan(&n.Timestamp, &n.Gateway, &n.SensorID,
+		rows.Scan(&n.LAST_SEEN, &n.Gateway, &n.SensorID,
 			&n.Address, &n.Parent, &n.Eui64, &n.Position.Lat, &n.Position.Lng, &n.Type, &n.Power)
 		nodeList = append(nodeList, n)
 	}
