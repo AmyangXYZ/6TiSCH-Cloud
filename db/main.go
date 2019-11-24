@@ -55,7 +55,7 @@ func handle(w http.ResponseWriter, r *http.Request) {
 			Error.Println(err)
 			return
 		}
-		handleHeartBeatData(h, gwn)
+		handleHeartBeatData(h)
 	case "topology_data":
 		var t topology
 		err = json.Unmarshal(msg, &t)
