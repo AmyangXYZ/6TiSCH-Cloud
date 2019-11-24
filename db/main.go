@@ -48,6 +48,14 @@ func handle(w http.ResponseWriter, r *http.Request) {
 	gwn := d.Gateway.Msg.Name
 
 	switch d.Type {
+	case "heart":
+		var h heart
+		err = json.Unmarshal(msg, &h)
+		if err != nil {
+			Error.Println(err)
+			return
+		}
+		handleHeartBeatData(h)
 	case "topology_data":
 		var t topology
 		err = json.Unmarshal(msg, &t)
