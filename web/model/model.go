@@ -3,14 +3,15 @@ package model
 import (
 	"database/sql"
 	"fmt"
+	"os"
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
 )
 
 var (
-	db     *sql.DB
-	err    error
+	db  *sql.DB
+	err error
 )
 
 func init() {
