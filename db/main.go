@@ -115,13 +115,13 @@ func handleTopologyData(topo topology, gwn string) {
 	t := time.Now()
 	timestamp := t.UnixNano() / 1e6
 
-	stmt, err := db.Prepare(`INSERT INTO TOPOLOGY_DATA(FIRST_APPEAR, GATEWAY_NAME, SENSOR_ID, ADDRESS,
-		PARENT, EUI64, GPS_Lat, GPS_Lon, TYPE, POWER) VALUES(?,?,?,?,?,?,?,?,?,?)`)
+	stmt, err := db.Prepare(`INSERT INTO TOPOLOGY_DATA(FIRST_APPEAR, LAST_SEEN, GATEWAY_NAME, SENSOR_ID, ADDRESS,
+		PARENT, EUI64, GPS_Lat, GPS_Lon, TYPE, POWER) VALUES(?,?,?,?,?,?,?,?,?,?,?)`)
 	if err != nil {
 		Error.Println(stmt, err)
 	}
 
-	_, err = stmt.Exec(timestamp, gwn, topo.Data.ID, topo.Data.Address,
+	_, err = stmt.Exec(timestamp, timestamp, gwn, topo.Data.ID, topo.Data.Address,
 		topo.Data.Parent, topo.Data.Eui64, topo.Data.GPS[0], topo.Data.GPS[1], topo.Data.Type, topo.Data.Power)
 	if err != nil {
 		Error.Panicln(err)
