@@ -108,8 +108,6 @@ advanced=0
     ...
     {
         "timestamp": 1573077385010,
-        "gateway": "UCONN_GW",
-        "ch": null,
         "avg_rssi": -44,
     },
     ...
@@ -123,7 +121,6 @@ advanced=1
     ...
     {
         "timestamp": 1573077385010,
-        "gateway": "UCONN_GW",
         "mac_tx_total_diff": 35,
         "mac_tx_noack_diff": 1,
         "app_per_sent_diff": 12,
