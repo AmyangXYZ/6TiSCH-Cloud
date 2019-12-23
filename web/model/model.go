@@ -72,9 +72,9 @@ func GetTopology(gatewayName string, timeRange int64) ([]Node, error) {
 	nodeList := make([]Node, 0)
 
 	if gatewayName == "any" {
-		rows, err = db.Query("select * from TOPOLOGY_DATA where LAST_SEEN>=? group by SENSOR_ID", timeRange)
+		rows, err = db.Query("select * from TOPOLOGY_DATA where LAST_SEEN>=? and FIRST_APPEAR in (select MAX(FIRST_APPEAR) from TOPOLOGY_DATA group by SENSOR_ID);", timeRange)
 	} else {
-		rows, err = db.Query("select * from TOPOLOGY_DATA where GATEWAY_NAME=? and LAST_SEEN>=? group by SENSOR_ID", gatewayName, timeRange)
+		rows, err = db.Query("select * from TOPOLOGY_DATA where GATEWAY_NAME=? and LAST_SEEN>=? and FIRST_APPEAR in (select MAX(FIRST_APPEAR) from TOPOLOGY_DATA group by SENSOR_ID);", gatewayName, timeRange)
 	}
 	if err != nil {
 		return nodeList, err
@@ -82,7 +82,7 @@ func GetTopology(gatewayName string, timeRange int64) ([]Node, error) {
 	defer rows.Close()
 
 	for rows.Next() {
-		rows.Scan(&n.FirstAppear, n.LastSeen, &n.Gateway, &n.SensorID,
+		rows.Scan(&n.FirstAppear, &n.LastSeen, &n.Gateway, &n.SensorID,
 			&n.Address, &n.Parent, &n.Eui64, &n.Position.Lat, &n.Position.Lng, &n.Type, &n.Power)
 		nodeList = append(nodeList, n)
 	}
