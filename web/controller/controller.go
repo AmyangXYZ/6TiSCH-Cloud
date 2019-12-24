@@ -97,6 +97,18 @@ func GetBattery(ctx *sweetygo.Context) error {
 	return ctx.JSON(200, 1, "success", batData)
 }
 
+// GetNoiseLevel handles GET /api/:gateway/noise
+func GetNoiseLevel(ctx *sweetygo.Context) error {
+	timeRange := range2stamp(ctx.Param("range"))
+	nlData, err := model.GetNoiseLevel(ctx.Param("gateway"), timeRange)
+	if err != nil {
+		return ctx.JSON(500, 0, err.Error(), nil)
+	}
+	if len(nlData) == 0 {
+		return ctx.JSON(200, 0, "no result found", nil)
+	}
+	return ctx.JSON(200, 1, "success", nlData)
+}
 func range2stamp(timeRange string) int64 {
 	now := time.Now().UnixNano() / 1e6
 	startTime := int64(0)

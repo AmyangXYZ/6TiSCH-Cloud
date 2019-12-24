@@ -147,7 +147,7 @@ func handleSensorData(s sensor, gwn string) {
         if err != nil {
                 Error.Println(stmt2, err)
         }
-		defer stmt2.Close()
+        defer stmt2.Close()
         _, err = stmt2.Exec(timestamp, gwn, s.ID)
         if err != nil {
                 Error.Println(stmt2, err)
@@ -158,14 +158,14 @@ func handleNetworkData0(n0 network0, gwn string) {
         timestamp := t.UnixNano() / 1e6
 
         stmt1, err := db.Prepare(`INSERT INTO NW_DATA_SET_PER_UCONN(TIMESTAMP, GATEWAY_NAME, SENSOR_ID, 
-                AVG_RSSI, APP_PER_SENT_LAST_SEQ, APP_PER_SENT, APP_PER_SENT_LOST, TX_FAIL, TX_NOACK, 
+                AVG_RSSI, AVG_RXRSSI, APP_PER_SENT_LAST_SEQ, APP_PER_SENT, APP_PER_SENT_LOST, TX_FAIL, TX_NOACK, 
                 TX_TOTAL, RX_TOTAL, TX_LENGTH_TOTAL, MAC_TX_NOACK_DIFF, MAC_TX_TOTAL_DIFF, MAC_RX_TOTAL_DIFF, 
                 MAC_TX_LENGTH_TOTAL_DIFF, APP_PER_LOST_DIFF, APP_PER_SENT_DIFF) 
-                VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
+                VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
         if err != nil {
                 Error.Println(stmt1, err)
         }
-		defer stmt1.Close()
+        defer stmt1.Close()
         stmt2, err := db.Prepare(`INSERT INTO NW_DATA_SET_PER_CHINFO(TIMESTAMP, GATEWAY_NAME, SENSOR_ID, 
                 CHANNELS, RSSI, RX_RSSI, TX_NOACK, TX_TOTAL) 
                 VALUES(?,?,?,?,?,?,?,?)`)
@@ -173,12 +173,12 @@ func handleNetworkData0(n0 network0, gwn string) {
                 Error.Println(stmt2, err)
         }
 		defer stmt2.Close()
-        // compute average rssi and store avaliable channel info into NW_DATA_SET_PER_CHINFO
+        // compute average rssi,rxrssi and store avaliable channel info into NW_DATA_SET_PER_CHINFO
         // save 95% space than in text field
-        avgRSSi := 0
         cnt := 0
         tmp := 0
-
+        tmp2 := 0
+	if n0.ID==3{fmt.Println(n0.ID, n0.Data.Ch)}
         chList := ""
         rssiList := ""
         rxRSSiList := ""
@@ -189,7 +189,7 @@ func handleNetworkData0(n0 network0, gwn string) {
                 if v.RSSI != 0 {
                         cnt++
                         tmp += v.RSSI
-
+                        tmp2+=v.RxRSSI
                         chList += k + ","
                         rssiList += strconv.Itoa(v.RSSI) + ","
                         rxRSSiList += strconv.Itoa(v.RxRSSI) + ","
@@ -197,9 +197,10 @@ func handleNetworkData0(n0 network0, gwn string) {
                         txTotalList += strconv.Itoa(v.TxTotal) + ","
                 }
         }
-        avgRSSi = tmp / cnt
+        avgRSSi := tmp / cnt
+        avgRxRSSi := tmp2 / cnt
 
-        _, err = stmt1.Exec(timestamp, gwn, n0.ID, avgRSSi, n0.Data.AppPER.LastSeq,
+        _, err = stmt1.Exec(timestamp, gwn, n0.ID, avgRSSi, avgRxRSSi,n0.Data.AppPER.LastSeq,
                 n0.Data.AppPER.Sent, n0.Data.AppPER.Lost, n0.Data.TxFail, n0.Data.TxNoAck, n0.Data.TxTotal,
                 n0.Data.RxTotal, n0.Data.TxLengthTotal, n0.Data.MacTxNoAckDiff, n0.Data.MacTxTotalDiff,
                 n0.Data.MacRxTotalDiff, n0.Data.MacTxLengthTotalDiff, n0.Data.AppLostDiff, n0.Data.AppSentDiff)
@@ -241,7 +242,7 @@ func handleNetworkData2(n2 network2, gwn string) {
         if err != nil {
                 Error.Println(stmt, err)
         }
-		defer stmt.Close()
+        defer stmt.Close()
         _, err = stmt.Exec(timestamp, gwn, n2.ID, n2.RTT)
         if err != nil {
                 Error.Println(stmt, err)
@@ -330,6 +331,7 @@ func init() {
                 SENSOR_ID SMALLINT UNSIGNED NOT NULL,
                 CHANNEL_INFO TEXT,
                 AVG_RSSI SMALLINT NOT NULL,
+                AVG_RXRSSI SMALLINT NOT NULL,
                 APP_PER_SENT_LAST_SEQ SMALLINT NOT NULL,
                 APP_PER_SENT SMALLINT NOT NULL,
                 APP_PER_SENT_LOST SMALLINT NOT NULL,
@@ -338,12 +340,12 @@ func init() {
                 TX_TOTAL INT NOT NULL,
                 RX_TOTAL INT NOT NULL,
                 TX_LENGTH_TOTAL INT NOT NULL,
-                MAC_TX_NOACK_DIFF SMALLINT NOT NULL,
-                MAC_TX_TOTAL_DIFF SMALLINT NOT NULL,
-                MAC_RX_TOTAL_DIFF SMALLINT NOT NULL,
-                MAC_TX_LENGTH_TOTAL_DIFF SMALLINT NOT NULL,
-                APP_PER_LOST_DIFF SMALLINT NOT NULL,
-                APP_PER_SENT_DIFF SMALLINT NOT NULL);`)
+                MAC_TX_NOACK_DIFF INT NOT NULL,
+                MAC_TX_TOTAL_DIFF INT NOT NULL,
+                MAC_RX_TOTAL_DIFF INT NOT NULL,
+                MAC_TX_LENGTH_TOTAL_DIFF INT NOT NULL,
+                APP_PER_LOST_DIFF INT NOT NULL,
+                APP_PER_SENT_DIFF INT NOT NULL);`)
         if err != nil {
                 Error.Panicln(err)
         }

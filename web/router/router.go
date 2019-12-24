@@ -15,4 +15,5 @@ func SetRouter(app *sweetygo.SweetyGo) {
 	app.GET("/api/:gateway/nwstat", controller.GetNWStat)
 	app.GET("/api/:gateway/nwstat/:sensorID", controller.GetNWStatByID)
 	app.GET("/api/:gateway/battery", controller.GetBattery)
+	app.GET("/api/:gateway/noise", controller.GetNoiseLevel)
 }
