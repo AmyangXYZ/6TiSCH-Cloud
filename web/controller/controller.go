@@ -8,6 +8,18 @@ import (
 	"github.com/AmyangXYZ/sweetygo"
 )
 
+var lastBootTime int64 = 0
+
+func init() {
+	go func() {
+		for {
+			lastBootTime = model.GetLastBootTime()
+			time.Sleep(5 * time.Minute)
+		}
+	}()
+
+}
+
 // Index page handler.
 func Index(ctx *sweetygo.Context) error {
 	return ctx.Render(200, "index")
@@ -47,6 +59,42 @@ func GetTopology(ctx *sweetygo.Context) error {
 	return ctx.JSON(200, 1, "success", nodeList)
 }
 
+// GetTopoHistory handles GET /api/:gateway/topology/history
+func GetTopoHistory(ctx *sweetygo.Context) error {
+	eventList, err := model.GetTopoHistory(range2stamp("week"))
+	if err != nil {
+		return ctx.JSON(500, 0, err.Error(), nil)
+	}
+	if len(eventList) == 0 {
+		return ctx.JSON(200, 0, "no result found", nil)
+	}
+	return ctx.JSON(200, 1, "success", eventList)
+}
+
+// GetSchedule handles GET /api/:gateway/schedule
+func GetSchedule(ctx *sweetygo.Context) error {
+	scheduleData, err := model.GetSchedule()
+	if err != nil {
+		return ctx.JSON(500, 0, err.Error(), nil)
+	}
+	if len(scheduleData) == 0 {
+		return ctx.JSON(200, 0, "no result found", nil)
+	}
+	return ctx.JSON(200, 1, "success", scheduleData)
+}
+
+// GetPartition handles GET /api/:gateway/schedule/partition
+func GetPartition(ctx *sweetygo.Context) error {
+	partitionData, err := model.GetPartition()
+	if err != nil {
+		return ctx.JSON(500, 0, err.Error(), nil)
+	}
+	if len(partitionData) == 0 {
+		return ctx.JSON(200, 0, "no result found", nil)
+	}
+	return ctx.JSON(200, 1, "success", partitionData)
+}
+
 // GetNWStat handles GET /api/:gateway/nwstat
 func GetNWStat(ctx *sweetygo.Context) error {
 	timeRange := range2stamp(ctx.Param("range"))
@@ -84,10 +132,36 @@ func GetNWStatByID(ctx *sweetygo.Context) error {
 	return ctx.JSON(200, 1, "success", sensorNWStatData)
 }
 
+// GetChInfoByID handles GET /api/:gateway/nwstat/:id/channel
+func GetChInfoByID(ctx *sweetygo.Context) error {
+	timeRange := range2stamp(ctx.Param("range"))
+	chInfo, err := model.GetChInfoByID(ctx.Param("gateway"), ctx.Param("sensorID"), timeRange)
+	if err != nil {
+		return ctx.JSON(500, 0, err.Error(), nil)
+	}
+	if len(chInfo) == 0 {
+		return ctx.JSON(200, 0, "no result found", nil)
+	}
+	return ctx.JSON(200, 1, "success", chInfo)
+}
+
 // GetBattery handles GET /api/:gateway/battery
 func GetBattery(ctx *sweetygo.Context) error {
 	timeRange := range2stamp(ctx.Param("range"))
 	batData, err := model.GetBattery(ctx.Param("gateway"), timeRange)
+	if err != nil {
+		return ctx.JSON(500, 0, err.Error(), nil)
+	}
+	if len(batData) == 0 {
+		return ctx.JSON(200, 0, "no result found", nil)
+	}
+	return ctx.JSON(200, 1, "success", batData)
+}
+
+// GetBatteryByID handles GET /api/:gateway/battery/:sensorID
+func GetBatteryByID(ctx *sweetygo.Context) error {
+	timeRange := range2stamp(ctx.Param("range"))
+	batData, err := model.GetBatteryByID(ctx.Param("gateway"), ctx.Param("sensorID"), timeRange)
 	if err != nil {
 		return ctx.JSON(500, 0, err.Error(), nil)
 	}
@@ -109,6 +183,7 @@ func GetNoiseLevel(ctx *sweetygo.Context) error {
 	}
 	return ctx.JSON(200, 1, "success", nlData)
 }
+
 func range2stamp(timeRange string) int64 {
 	now := time.Now().UnixNano() / 1e6
 	startTime := int64(0)
@@ -123,6 +198,9 @@ func range2stamp(timeRange string) int64 {
 		startTime = now - 60*60*24*7*30*1000
 	default:
 		break
+	}
+	if startTime < lastBootTime {
+		startTime = lastBootTime
 	}
 	return startTime
 }
