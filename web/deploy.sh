@@ -1,7 +1,7 @@
 #!/bin/sh
 rm -rf ./dist
 rm -rf ./static
-tar -xzvf dist.tar.gz
+tar -xzvf dist.tar.xz
 mv ./dist/static ./static
 mv ./dist/index.html ./templates/index.html
 sed -i 's/^/{{define "index"}}/' ./templates/index.html
