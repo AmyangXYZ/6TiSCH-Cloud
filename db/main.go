@@ -149,13 +149,13 @@ func handlePartitionData(pt partition, gwn string) {
 		Error.Println(err)
 	}
 
-	stmt, err := db.Prepare(`INSERT INTO PARTITION_DATA(TIMESTAMP, GATEWAY_NAME, TYPE, LAYER, START, END) VALUES(?,?,?,?,?,?)`)
+	stmt, err := db.Prepare(`INSERT INTO PARTITION_DATA(TIMESTAMP, GATEWAY_NAME, ROWW, TYPE, LAYER, START, END) VALUES(?,?,?,?,?,?,?)`)
 	if err != nil {
 		Error.Println(stmt, err)
 	}
 	defer stmt.Close()
 	for i := range pt.Data {
-		_, err = stmt.Exec(timestamp, gwn, pt.Data[i].Type, pt.Data[i].Layer, pt.Data[i].Range[0], pt.Data[i].Range[1])
+		_, err = stmt.Exec(timestamp, gwn, pt.Data[i].Row, pt.Data[i].Type, pt.Data[i].Layer, pt.Data[i].Range[0], pt.Data[i].Range[1])
 		if err != nil {
 			Error.Println(err)
 		}
@@ -172,14 +172,14 @@ func handleScheduleData(sch schedule, gwn string) {
 		Error.Println(err)
 	}
 
-	stmt, err := db.Prepare(`INSERT INTO SCHEDULE_DATA(TIMESTAMP, GATEWAY_NAME, SLOT_OFFSET, CHANNEL_OFFSET, SUBSLOT_OFFSET, SUBSLOT_PERIOD, TYPE, SENDER, RECEIVER, IS_OPTIMAL) VALUES(?,?,?,?,?,?,?,?,?,?)`)
+	stmt, err := db.Prepare(`INSERT INTO SCHEDULE_DATA(TIMESTAMP, GATEWAY_NAME, SLOT_OFFSET, CHANNEL_OFFSET, SUBSLOT_OFFSET, SUBSLOT_PERIOD, TYPE, LAYER, SENDER, RECEIVER, IS_OPTIMAL) VALUES(?,?,?,?,?,?,?,?,?,?,?)`)
 	if err != nil {
 		Error.Println(stmt, err)
 	}
 	defer stmt.Close()
 	for i := range sch.Data {
 		_, err = stmt.Exec(timestamp, gwn, sch.Data[i].Slot[0], sch.Data[i].Slot[1],
-			sch.Data[i].Subslot[0], sch.Data[i].Subslot[1], sch.Data[i].Cell.Type, sch.Data[i].Cell.Sender, sch.Data[i].Cell.Receiver, sch.Data[i].IsOptimal)
+			sch.Data[i].Subslot[0], sch.Data[i].Subslot[1], sch.Data[i].Cell.Type, sch.Data[i].Cell.Layer, sch.Data[i].Cell.Sender, sch.Data[i].Cell.Receiver, sch.Data[i].IsOptimal)
 		if err != nil {
 			Error.Println(err)
 		}
@@ -355,6 +355,7 @@ func init() {
 	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS PARTITION_DATA (
                         TIMESTAMP BIGINT,
                         GATEWAY_NAME VARCHAR(16) NOT NULL,
+                        ROWW SMALLINT NOT NULL,
                         TYPE VARCHAR(16) NOT NULL,
                         LAYER SMALLINT NOT NULL,
                         START SMALLINT NOT NULL,
@@ -373,6 +374,7 @@ func init() {
                         SUBSLOT_OFFSET SMALLINT NOT NULL,
                         SUBSLOT_PERIOD SMALLINT NOT NULL,
                         TYPE VARCHAR(16) NOT NULL,
+						Layer SMALLINT,
                         SENDER SMALLINT,
                         RECEIVER INT,
                         IS_OPTIMAL SMALLINT);`)
@@ -554,6 +556,7 @@ type (
 		Data []dataPartition `json:"data"`
 	}
 	dataPartition struct {
+		Row   int    `json:"row"`
 		Type  string `json:"type"`
 		Layer int    `json:"layer"`
 		Range [2]int `json:"range"`
@@ -567,6 +570,7 @@ type (
 		Subslot [2]int `json:"subslot"`
 		Cell    struct {
 			Type     string `json:"type"`
+			Layer    int    `json:"layer"`
 			Sender   int    `json:"sender"`
 			Receiver int    `json:"receiver"`
 		}

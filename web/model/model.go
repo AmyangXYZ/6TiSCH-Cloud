@@ -134,6 +134,7 @@ type ScheduleData struct {
 	Slot      [2]int `json:"slot"`
 	SubSlot   [2]int `json:"subslot"`
 	Type      string `json:"type"`
+	Layer     int    `json:"layer"`
 	Sender    int    `json:"sender"`
 	Receiver  int    `json:"receiver"`
 	IsOptimal int    `json:"is_optimal"`
@@ -144,14 +145,14 @@ func GetSchedule() ([]ScheduleData, error) {
 	var rows *sql.Rows
 	schList := make([]ScheduleData, 0)
 
-	rows, err = db.Query(`select SLOT_OFFSET, CHANNEL_OFFSET, SUBSLOT_OFFSET, SUBSLOT_PERIOD, TYPE, SENDER, RECEIVER, IS_OPTIMAL from SCHEDULE_DATA`)
+	rows, err = db.Query(`select SLOT_OFFSET, CHANNEL_OFFSET, SUBSLOT_OFFSET, SUBSLOT_PERIOD, TYPE, LAYER, SENDER, RECEIVER, IS_OPTIMAL from SCHEDULE_DATA`)
 	if err != nil {
 		return schList, err
 	}
 	defer rows.Close()
 
 	for rows.Next() {
-		rows.Scan(&sch.Slot[0], &sch.Slot[1], &sch.SubSlot[0], &sch.SubSlot[1], &sch.Type, &sch.Sender, &sch.Receiver, &sch.IsOptimal)
+		rows.Scan(&sch.Slot[0], &sch.Slot[1], &sch.SubSlot[0], &sch.SubSlot[1], &sch.Type, &sch.Layer, &sch.Sender, &sch.Receiver, &sch.IsOptimal)
 		schList = append(schList, sch)
 	}
 
@@ -160,6 +161,7 @@ func GetSchedule() ([]ScheduleData, error) {
 
 type PartitionData struct {
 	Type  string `json:"type"`
+	Row   int    `json:"row"`
 	Layer int    `json:"layer"`
 	Range [2]int `json:"range"`
 }
@@ -169,14 +171,14 @@ func GetPartition() ([]PartitionData, error) {
 	var rows *sql.Rows
 	pList := make([]PartitionData, 0)
 
-	rows, err = db.Query(`select TYPE, LAYER, START, END from PARTITION_DATA`)
+	rows, err = db.Query(`select ROW, TYPE, LAYER, START, END from PARTITION_DATA`)
 	if err != nil {
 		return pList, err
 	}
 	defer rows.Close()
 
 	for rows.Next() {
-		rows.Scan(&p.Type, &p.Layer, &p.Range[0], &p.Range[1])
+		rows.Scan(&p.Row, &p.Type, &p.Layer, &p.Range[0], &p.Range[1])
 		pList = append(pList, p)
 	}
 
@@ -187,7 +189,8 @@ func GetPartition() ([]PartitionData, error) {
 type NWStatData struct {
 	SensorID          int     `json:"sensor_id"`
 	Gateway           string  `json:"gateway"`
-	AVGRTT            float64 `json:"avg_rtt"`
+	AvgLatency        float32 `json:"avg_latency"`
+	AvgRTT            float64 `json:"avg_rtt"`
 	AvgMACTxTotalDiff float32 `json:"avg_mac_tx_total_diff"`
 	AvgMACTxNoACKDiff float32 `json:"avg_mac_tx_noack_diff"`
 	AvgAPPPERSentDiff float32 `json:"avg_app_per_sent_diff"`
@@ -200,6 +203,8 @@ func GetNWStat(gatewayName string, timeRange int64) ([]NWStatData, error) {
 	var rows1 *sql.Rows
 	// query NW_DATA_SET_LATENCY
 	var rows2 *sql.Rows
+	// query latency from SENSOR_DATA
+	var rows3 *sql.Rows
 	nList := make([]NWStatData, 0)
 
 	if gatewayName == "any" {
@@ -211,6 +216,8 @@ func GetNWStat(gatewayName string, timeRange int64) ([]NWStatData, error) {
 		}
 		rows2, err = db.Query(`select SENSOR_ID, GATEWAY_NAME, AVG(RTT) from
 			NW_DATA_SET_LATENCY where TIMESTAMP>=? group by SENSOR_ID`, timeRange)
+		rows3, err = db.Query(`select SENSOR_ID, GATEWAY_NAME, AVG(LATENCY) from
+			SENSOR_DATA where TIMESTAMP>=? group by SENSOR_ID`, timeRange)
 	} else {
 		rows1, err = db.Query(`select SENSOR_ID, GATEWAY_NAME, AVG(MAC_TX_TOTAL_DIFF),
 		AVG(MAC_TX_NOACK_DIFF),AVG(APP_PER_SENT_DIFF),AVG(APP_PER_LOST_DIFF) from NW_DATA_SET_PER_UCONN 
@@ -220,6 +227,8 @@ func GetNWStat(gatewayName string, timeRange int64) ([]NWStatData, error) {
 		}
 		rows2, err = db.Query(`select SENSOR_ID, GATEWAY_NAME, AVG(RTT) from
 			NW_DATA_SET_LATENCY where GATEWAY_NAME=? and TIMESTAMP>=? group by SENSOR_ID`, gatewayName, timeRange)
+		rows3, err = db.Query(`select SENSOR_ID, GATEWAY_NAME, AVG(LATENCY) from
+			SENSOR_DATA where GATEWAY_NAME=? and TIMESTAMP>=? group by SENSOR_ID`, gatewayName, timeRange)
 	}
 	if err != nil {
 		return nList, err
@@ -233,12 +242,23 @@ func GetNWStat(gatewayName string, timeRange int64) ([]NWStatData, error) {
 		nList = append(nList, n)
 	}
 
-	// merge
+	// merge RTT
 	for rows2.Next() {
-		rows2.Scan(&n.SensorID, &n.Gateway, &n.AVGRTT)
+		rows2.Scan(&n.SensorID, &n.Gateway, &n.AvgRTT)
 		for i, v := range nList {
 			if v.SensorID == n.SensorID && v.Gateway == n.Gateway {
-				nList[i].AVGRTT = n.AVGRTT
+				nList[i].AvgRTT = n.AvgRTT
+				break
+			}
+		}
+	}
+
+	// merge LATENCY
+	for rows3.Next() {
+		rows3.Scan(&n.SensorID, &n.Gateway, &n.AvgLatency)
+		for i, v := range nList {
+			if v.SensorID == n.SensorID && v.Gateway == n.Gateway {
+				nList[i].AvgLatency = n.AvgLatency
 				break
 			}
 		}
