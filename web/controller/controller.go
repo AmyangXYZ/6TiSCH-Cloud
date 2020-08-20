@@ -14,7 +14,7 @@ func init() {
 	go func() {
 		for {
 			lastBootTime = model.GetLastBootTime()
-			time.Sleep(5 * time.Minute)
+			time.Sleep(1 * time.Minute)
 		}
 	}()
 
@@ -35,8 +35,8 @@ func Static(ctx *sweetygo.Context) error {
 
 // GetGateway handles GET /api/gateway
 func GetGateway(ctx *sweetygo.Context) error {
-	timeRange := range2stamp(ctx.Param("range"))
-	gatewayList, err := model.GetGateway(timeRange)
+	timeRange, now := range2stamp(ctx.Param("range"))
+	gatewayList, err := model.GetGateway(timeRange, now)
 	if err != nil {
 		return ctx.JSON(500, 0, err.Error(), nil)
 	}
@@ -48,8 +48,8 @@ func GetGateway(ctx *sweetygo.Context) error {
 
 // GetTopology handles GET /api/:gateway/topology
 func GetTopology(ctx *sweetygo.Context) error {
-	timeRange := range2stamp(ctx.Param("range"))
-	nodeList, err := model.GetTopology(ctx.Param("gateway"), timeRange)
+	timeRange, now := range2stamp(ctx.Param("range"))
+	nodeList, err := model.GetTopology(ctx.Param("gateway"), timeRange, now)
 	if err != nil {
 		return ctx.JSON(500, 0, err.Error(), nil)
 	}
@@ -97,8 +97,8 @@ func GetPartition(ctx *sweetygo.Context) error {
 
 // GetNWStat handles GET /api/:gateway/nwstat
 func GetNWStat(ctx *sweetygo.Context) error {
-	timeRange := range2stamp(ctx.Param("range"))
-	nwStatData, err := model.GetNWStat(ctx.Param("gateway"), timeRange)
+	timeRange, now := range2stamp(ctx.Param("range"))
+	nwStatData, err := model.GetNWStat(ctx.Param("gateway"), timeRange, now)
 	if err != nil {
 		return ctx.JSON(500, 0, err.Error(), nil)
 	}
@@ -110,9 +110,9 @@ func GetNWStat(ctx *sweetygo.Context) error {
 
 // GetNWStatByID handles GET /api/:gateway/nwstat/:sensorID
 func GetNWStatByID(ctx *sweetygo.Context) error {
-	timeRange := range2stamp(ctx.Param("range"))
+	timeRange, now := range2stamp(ctx.Param("range"))
 	if ctx.Param("advanced") != "" && ctx.Param("advanced") == "1" {
-		sensorNWStatAdvData, err := model.GetNWStatAdvByID(ctx.Param("gateway"), ctx.Param("sensorID"), timeRange)
+		sensorNWStatAdvData, err := model.GetNWStatAdvByID(ctx.Param("gateway"), ctx.Param("sensorID"), timeRange, now)
 		if err != nil {
 			return ctx.JSON(500, 0, err.Error(), nil)
 		}
@@ -122,7 +122,7 @@ func GetNWStatByID(ctx *sweetygo.Context) error {
 		return ctx.JSON(200, 1, "success", sensorNWStatAdvData)
 	}
 
-	sensorNWStatData, err := model.GetNWStatByID(ctx.Param("gateway"), ctx.Param("sensorID"), timeRange)
+	sensorNWStatData, err := model.GetNWStatByID(ctx.Param("gateway"), ctx.Param("sensorID"), timeRange, now)
 	if err != nil {
 		return ctx.JSON(500, 0, err.Error(), nil)
 	}
@@ -132,10 +132,23 @@ func GetNWStatByID(ctx *sweetygo.Context) error {
 	return ctx.JSON(200, 1, "success", sensorNWStatData)
 }
 
+// GetLatencyByID handles GET /api/:gateway/nwstat/:id/latency
+func GetLatencyByID(ctx *sweetygo.Context) error {
+	timeRange, now := range2stamp(ctx.Param("range"))
+	latency, err := model.GetLatencyByID(ctx.Param("gateway"), ctx.Param("sensorID"), timeRange, now)
+	if err != nil {
+		return ctx.JSON(500, 0, err.Error(), nil)
+	}
+	if len(latency) == 0 {
+		return ctx.JSON(200, 0, "no result found", nil)
+	}
+	return ctx.JSON(200, 1, "success", latency)
+}
+
 // GetChInfoByID handles GET /api/:gateway/nwstat/:id/channel
 func GetChInfoByID(ctx *sweetygo.Context) error {
-	timeRange := range2stamp(ctx.Param("range"))
-	chInfo, err := model.GetChInfoByID(ctx.Param("gateway"), ctx.Param("sensorID"), timeRange)
+	timeRange, now := range2stamp(ctx.Param("range"))
+	chInfo, err := model.GetChInfoByID(ctx.Param("gateway"), ctx.Param("sensorID"), timeRange, now)
 	if err != nil {
 		return ctx.JSON(500, 0, err.Error(), nil)
 	}
@@ -147,8 +160,8 @@ func GetChInfoByID(ctx *sweetygo.Context) error {
 
 // GetBattery handles GET /api/:gateway/battery
 func GetBattery(ctx *sweetygo.Context) error {
-	timeRange := range2stamp(ctx.Param("range"))
-	batData, err := model.GetBattery(ctx.Param("gateway"), timeRange)
+	timeRange, now := range2stamp(ctx.Param("range"))
+	batData, err := model.GetBattery(ctx.Param("gateway"), timeRange, now)
 	if err != nil {
 		return ctx.JSON(500, 0, err.Error(), nil)
 	}
@@ -160,8 +173,8 @@ func GetBattery(ctx *sweetygo.Context) error {
 
 // GetBatteryByID handles GET /api/:gateway/battery/:sensorID
 func GetBatteryByID(ctx *sweetygo.Context) error {
-	timeRange := range2stamp(ctx.Param("range"))
-	batData, err := model.GetBatteryByID(ctx.Param("gateway"), ctx.Param("sensorID"), timeRange)
+	timeRange, now := range2stamp(ctx.Param("range"))
+	batData, err := model.GetBatteryByID(ctx.Param("gateway"), ctx.Param("sensorID"), timeRange, now)
 	if err != nil {
 		return ctx.JSON(500, 0, err.Error(), nil)
 	}
@@ -173,8 +186,8 @@ func GetBatteryByID(ctx *sweetygo.Context) error {
 
 // GetNoiseLevel handles GET /api/:gateway/noise
 func GetNoiseLevel(ctx *sweetygo.Context) error {
-	timeRange := range2stamp(ctx.Param("range"))
-	nlData, err := model.GetNoiseLevel(ctx.Param("gateway"), timeRange)
+	timeRange, now := range2stamp(ctx.Param("range"))
+	nlData, err := model.GetNoiseLevel(ctx.Param("gateway"), timeRange, now)
 	if err != nil {
 		return ctx.JSON(500, 0, err.Error(), nil)
 	}
@@ -184,12 +197,14 @@ func GetNoiseLevel(ctx *sweetygo.Context) error {
 	return ctx.JSON(200, 1, "success", nlData)
 }
 
-func range2stamp(timeRange string) int64 {
+func range2stamp(timeRange string) (int64, int64) {
 	now := time.Now().UnixNano() / 1e6
 	startTime := int64(0)
 	switch timeRange {
 	case "hour":
 		startTime = now - 60*60*1000
+	case "4hours":
+		startTime = now - 4*60*60*1000
 	case "day":
 		startTime = now - 60*60*24*1000
 	case "week":
@@ -202,5 +217,5 @@ func range2stamp(timeRange string) int64 {
 	if startTime < lastBootTime {
 		startTime = lastBootTime
 	}
-	return startTime
+	return startTime, now
 }

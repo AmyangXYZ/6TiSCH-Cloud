@@ -17,6 +17,7 @@ func SetRouter(app *sweetygo.SweetyGo) {
 	app.GET("/api/:gateway/schedule/partition", controller.GetPartition)
 	app.GET("/api/:gateway/nwstat", controller.GetNWStat)
 	app.GET("/api/:gateway/nwstat/:sensorID", controller.GetNWStatByID)
+	app.GET("/api/:gateway/nwstat/:sensorID/latency", controller.GetLatencyByID)
 	app.GET("/api/:gateway/nwstat/:sensorID/channel", controller.GetChInfoByID)
 	app.GET("/api/:gateway/battery", controller.GetBattery)
 	app.GET("/api/:gateway/battery/:sensorID", controller.GetBatteryByID)
