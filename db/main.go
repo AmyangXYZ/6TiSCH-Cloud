@@ -192,8 +192,8 @@ func handleSensorData(s sensor, gwn string) {
 
 	stmt1, err := db.Prepare(`INSERT INTO SENSOR_DATA (TIMESTAMP, GATEWAY_NAME, SENSOR_ID, TEMP, 
                 RHUM, LUX, PRESS, ACCELX, ACCELY, ACCELZ, LED, EH, EH1, CC2650_ACTIVE, CC2650_SLEEP,RF_TX, RF_RX, 
-                MSP432_ACTIVE, MSP432_SLEEP, GPSEN_ACTIVE, GPSEN_SLEEP, OTHERS, SEQUENCE, ASN_STAMP1, ASN_STAMP2, CHANNEL, BAT, LATENCY) 
-                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
+                MSP432_ACTIVE, MSP432_SLEEP, GPSEN_ACTIVE, GPSEN_SLEEP, OTHERS, SEQUENCE, ASN_STAMP1, CHANNEL, BAT, LAST_UPLINK_LATENCY) 
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
 	if err != nil {
 		Error.Println(stmt1, err)
 	}
@@ -201,7 +201,7 @@ func handleSensorData(s sensor, gwn string) {
 	_, err = stmt1.Exec(timestamp, gwn, s.ID, s.Data.Temp, s.Data.Rhum, s.Data.Lux, s.Data.Press,
 		s.Data.Accelx, s.Data.Accely, s.Data.Accelz, s.Data.LED, s.Data.Eh, s.Data.Eh1, s.Data.CC2650Active, s.Data.CC2650Sleep,
 		s.Data.RFTx, s.Data.RFRx, s.Data.MSP432Active, s.Data.MSP432Sleep, s.Data.GPSEnActive, s.Data.GPSEnSleep, s.Data.Others,
-		s.Data.Sequence, s.Data.ASNStamp1, s.Data.ASNStamp2, s.Data.Channel, s.Data.Bat, s.Data.Latency)
+		s.Data.Sequence, s.Data.ASNStamp1, s.Data.Channel, s.Data.Bat, s.Data.LastUplinkLatency)
 	if err != nil {
 		Error.Println(stmt1, err)
 	}
@@ -299,13 +299,13 @@ func handleNetworkData2(n2 network2, gwn string) {
 	t := time.Now()
 	timestamp := t.UnixNano() / 1e6
 
-	stmt, err := db.Prepare(`INSERT INTO NW_DATA_SET_LATENCY(TIMESTAMP, GATEWAY_NAME, SENSOR_ID, RTT) 
+	stmt, err := db.Prepare(`INSERT INTO NW_DATA_SET_LATENCY(TIMESTAMP, GATEWAY_NAME, SENSOR_ID, E2E_LATENCY) 
                 VALUES(?,?,?,?)`)
 	if err != nil {
 		Error.Println(stmt, err)
 	}
 	defer stmt.Close()
-	_, err = stmt.Exec(timestamp, gwn, n2.ID, n2.RTT)
+	_, err = stmt.Exec(timestamp, gwn, n2.ID, n2.E2ELatency)
 	if err != nil {
 		Error.Println(stmt, err)
 	}
@@ -408,11 +408,10 @@ func init() {
                 GPSEN_SLEEP FLOAT NOT NULL,
                 OTHERS SMALLINT NOT NULL,
                 SEQUENCE SMALLINT UNSIGNED NOT NULL,
-                ASN_STAMP1 SMALLINT NOT NULL,
-                ASN_STAMP2 SMALLINT NOT NULL,
+                ASN_STAMP1 INT NOT NULL,
                 CHANNEL TINYINT UNSIGNED NOT NULL,
                 BAT FLOAT NOT NULL,
-                LATENCY FLOAT NOT NULL);`)
+				LAST_UPLINK_LATENCY FLOAT NOT NULL);`)
 	if err != nil {
 		Error.Panicln(err)
 	}
@@ -486,7 +485,7 @@ func init() {
                 TIMESTAMP BIGINT,
                 GATEWAY_NAME VARCHAR(16) NOT NULL,
                 SENSOR_ID SMALLINT UNSIGNED NOT NULL,
-                RTT FLOAT NOT NULL);`)
+                E2E_LATENCY FLOAT NOT NULL);`)
 	if err != nil {
 		Error.Panicln(err)
 	}
@@ -603,10 +602,10 @@ type (
 		Others       int     `json:"others"`
 		Sequence     int     `json:"sequence"`
 		ASNStamp1    int     `json:"asn_stamp1"`
-		ASNStamp2    int     `json:"asn_stamp2"`
 		Channel      int     `json:"channel"`
 		Bat          float32 `json:"bat"`
-		Latency      float32 `json:"latency"`
+		// A2ALatency     float32 `json:"a2a_latency"`
+		LastUplinkLatency float32 `json:"last_uplink_latency"`
 	}
 
 	network0 struct {
@@ -618,9 +617,9 @@ type (
 		Data networkData1 `json:"data"`
 	}
 	network2 struct {
-		ID   int          `json:"_id"`
-		RTT  float32      `json:"rtt"`
-		Data networkData2 `json:"data"`
+		ID         int          `json:"_id"`
+		E2ELatency float32      `json:"e2e_latency"`
+		Data       networkData2 `json:"data"`
 	}
 
 	networkData0 struct {
