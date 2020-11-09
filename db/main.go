@@ -47,75 +47,78 @@ func handle(w http.ResponseWriter, r *http.Request) {
 
 	gwn := d.Gateway.Msg.Name
 
-	switch d.Type {
-	case "heart":
-		var h heart
-		err = json.Unmarshal(msg, &h)
-		if err != nil {
-			Error.Println(err)
-			return
-		}
-		handleHeartBeatData(h)
-	case "topology_data":
-		var t topology
-		err = json.Unmarshal(msg, &t)
-		if err != nil {
-			Error.Println(err)
-			return
-		}
-		handleTopologyData(t, gwn)
-	case "partition_data":
-		var pt partition
-		err = json.Unmarshal(msg, &pt)
-		if err != nil {
-			Error.Println(err)
-			return
-		}
-		handlePartitionData(pt, gwn)
-	case "schedule_data":
-		var sch schedule
-		err = json.Unmarshal(msg, &sch)
-		if err != nil {
-			Error.Println(err)
-			return
-		}
-		handleScheduleData(sch, gwn)
-	case "sensor_type_0":
-		var s sensor
-		err = json.Unmarshal(msg, &s)
-		if err != nil {
-			Error.Println(err)
-			return
-		}
-		handleSensorData(s, gwn)
-	case "network_data_0":
-		var n0 network0
-		err = json.Unmarshal(msg, &n0)
-		if err != nil {
-			Error.Println(err)
-			return
-		}
-		handleNetworkData0(n0, gwn)
-	case "network_data_1":
-		var n1 network1
-		err = json.Unmarshal(msg, &n1)
-		if err != nil {
-			Error.Println(err)
-			return
-		}
-		handleNetworkData1(n1, gwn)
-	case "network_data_2":
-		var n2 network2
-		err = json.Unmarshal(msg, &n2)
-		if err != nil {
-			Error.Println(err)
-			return
-		}
-		handleNetworkData2(n2, gwn)
-	default:
-		Error.Println("Unknown data type:", string(body))
-	}
+	go func() {
 
+		switch d.Type {
+		case "heart":
+			var h heart
+			err = json.Unmarshal(msg, &h)
+			if err != nil {
+				Error.Println(err)
+				return
+			}
+			handleHeartBeatData(h)
+		case "topology_data":
+			var t topology
+			err = json.Unmarshal(msg, &t)
+			if err != nil {
+				Error.Println(err)
+				return
+			}
+			handleTopologyData(t, gwn)
+		case "partition_data":
+			var pt partition
+			err = json.Unmarshal(msg, &pt)
+			if err != nil {
+				Error.Println(err)
+				return
+			}
+			handlePartitionData(pt, gwn)
+		case "schedule_data":
+			var sch schedule
+			err = json.Unmarshal(msg, &sch)
+			if err != nil {
+				Error.Println(err)
+				return
+			}
+			handleScheduleData(sch, gwn)
+		case "sensor_type_0":
+			var s sensor
+			err = json.Unmarshal(msg, &s)
+			if err != nil {
+				Error.Println(err)
+				return
+			}
+			handleSensorData(s, gwn)
+		case "network_data_0":
+			var n0 network0
+			err = json.Unmarshal(msg, &n0)
+			if err != nil {
+				Error.Println(err)
+				return
+			}
+			handleNetworkData0(n0, gwn)
+		case "network_data_1":
+			var n1 network1
+			err = json.Unmarshal(msg, &n1)
+			if err != nil {
+				Error.Println(err)
+				return
+			}
+			handleNetworkData1(n1, gwn)
+		case "network_data_2":
+			var n2 network2
+			err = json.Unmarshal(msg, &n2)
+			if err != nil {
+				Error.Println(err)
+				return
+			}
+			handleNetworkData2(n2, gwn)
+		default:
+			Error.Println("Unknown data type:", string(body))
+		}
+
+	}()
 	fmt.Fprintf(w, "Got it!\n")
 }
 
@@ -316,7 +319,8 @@ func init() {
 	Info = log.New(infoHandle, "[*] INFO: ", log.Ldate|log.Ltime)
 	Error = log.New(errorHandle, "[!] ERROR: ", log.Ldate|log.Ltime|log.Lshortfile)
 
-	dbAddr := fmt.Sprintf("root:%s@tcp(127.0.0.1:3306)/6tisch", os.Getenv("DBPasswd"))
+	// dbAddr := fmt.Sprintf("root:%s@tcp(127.0.0.1:3306)/6tisch", os.Getenv("DBPasswd"))
+	dbAddr := fmt.Sprintf("root:%s@tcp(127.0.0.1:3306)/6tisch", "1234")
 	db, _ = sql.Open("mysql", dbAddr)
 	for {
 		if err := db.Ping(); err != nil {
