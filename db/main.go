@@ -319,8 +319,8 @@ func init() {
 	Info = log.New(infoHandle, "[*] INFO: ", log.Ldate|log.Ltime)
 	Error = log.New(errorHandle, "[!] ERROR: ", log.Ldate|log.Ltime|log.Lshortfile)
 
-	// dbAddr := fmt.Sprintf("root:%s@tcp(127.0.0.1:3306)/6tisch", os.Getenv("DBPasswd"))
-	dbAddr := fmt.Sprintf("root:%s@tcp(127.0.0.1:3306)/6tisch", "1234")
+	dbAddr := fmt.Sprintf("root:%s@tcp(127.0.0.1:3306)/6tisch", os.Getenv("DBPasswd"))
+	// dbAddr := fmt.Sprintf("root:%s@tcp(127.0.0.1:3306)/6tisch", "1234")
 	db, _ = sql.Open("mysql", dbAddr)
 	for {
 		if err := db.Ping(); err != nil {
@@ -333,10 +333,9 @@ func init() {
 	Info.Println("connected to db")
 	// https://github.com/go-sql-driver/mysql/issues/674
 	db.SetMaxIdleConns(0)
-
-	db.SetConnMaxLifetime(time.Minute * 5)
-	db.SetMaxIdleConns(0)
-	db.SetMaxOpenConns(5)
+	// https://www.alexedwards.net/blog/configuring-sqldb
+	db.SetConnMaxLifetime(time.Minute * 1)
+	db.SetMaxOpenConns(10)
 	// TOPOLOGY_DATA
 	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS TOPOLOGY_DATA (
                         FIRST_APPEAR BIGINT,
@@ -349,7 +348,8 @@ func init() {
                         GPS_Lat DOUBLE NOT NULL,
                         GPS_Lon DOUBLE NOT NULL,
                         TYPE VARCHAR(64) NOT NULL,
-                        POWER VARCHAR(64) NOT NULL);`)
+                        POWER VARCHAR(64) NOT NULL,
+						INDEX TOPO_INDEX(FIRST_APPEAR, GATEWAY_NAME));`)
 	if err != nil {
 		Error.Panicln(err)
 	}
@@ -363,7 +363,8 @@ func init() {
                         TYPE VARCHAR(16) NOT NULL,
                         LAYER SMALLINT NOT NULL,
                         START SMALLINT NOT NULL,
-                        END SMALLINT NOT NULL);`)
+                        END SMALLINT NOT NULL,
+						INDEX PART_INDEX(TIMESTAMP, GATEWAY_NAME));`)
 	if err != nil {
 		Error.Panicln(err)
 	}
@@ -381,7 +382,8 @@ func init() {
 						Layer SMALLINT,
                         SENDER SMALLINT,
                         RECEIVER INT,
-                        IS_OPTIMAL SMALLINT);`)
+                        IS_OPTIMAL SMALLINT,
+						INDEX SCHED_INDEX(TIMESTAMP,GATEWAY_NAME(16)));`)
 	if err != nil {
 		Error.Panicln(err)
 	}
@@ -415,7 +417,8 @@ func init() {
                 ASN_STAMP1 INT NOT NULL,
                 CHANNEL TINYINT UNSIGNED NOT NULL,
                 BAT FLOAT NOT NULL,
-				LAST_UPLINK_LATENCY FLOAT NOT NULL);`)
+				LAST_UPLINK_LATENCY FLOAT NOT NULL,
+				INDEX SENSOR_INDEX(TIMESTAMP, GATEWAY_NAME));`)
 	if err != nil {
 		Error.Panicln(err)
 	}
@@ -442,7 +445,8 @@ func init() {
                 MAC_RX_TOTAL_DIFF INT NOT NULL,
                 MAC_TX_LENGTH_TOTAL_DIFF INT NOT NULL,
                 APP_PER_LOST_DIFF INT NOT NULL,
-                APP_PER_SENT_DIFF INT NOT NULL);`)
+                APP_PER_SENT_DIFF INT NOT NULL,
+				INDEX NW_PER_INDEX(TIMESTAMP, GATEWAY_NAME));`)
 	if err != nil {
 		Error.Panicln(err)
 	}
@@ -457,7 +461,8 @@ func init() {
                 RSSI VARCHAR(128) NOT NULL,
                 RX_RSSI  VARCHAR(128) NOT NULL,
                 TX_NOACK VARCHAR(128) NOT NULL,
-                TX_TOTAL VARCHAR(64) NOT NULL);`)
+                TX_TOTAL VARCHAR(64) NOT NULL,
+				INDEX CHINFO_INDEX(TIMESTAMP,GATEWAY_NAME));`)
 	if err != nil {
 		Error.Panicln(err)
 	}
@@ -478,7 +483,8 @@ func init() {
                 NUM_LOWPAN_TX_LOST SMALLINT UNSIGNED NOT NULL,
                 NUM_LOWPAN_RX_LOST SMALLINT UNSIGNED NOT NULL,
                 NUM_COAP_RX_LOST SMALLINT UNSIGNED NOT NULL,
-                NUM_COAP_OBS_DIS SMALLINT UNSIGNED NOT NULL);`)
+                NUM_COAP_OBS_DIS SMALLINT UNSIGNED NOT NULL,
+				INDEX NW_INFO_INDEX(TIMESTAMP,GATEWAY_NAME));`)
 	if err != nil {
 		Error.Panicln(err)
 	}
