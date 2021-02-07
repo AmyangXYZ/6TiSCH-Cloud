@@ -22,4 +22,5 @@ func SetRouter(app *sweetygo.SweetyGo) {
 	app.GET("/api/:gateway/battery", controller.GetBattery)
 	app.GET("/api/:gateway/battery/:sensorID", controller.GetBatteryByID)
 	app.GET("/api/:gateway/noise", controller.GetNoiseLevel)
+	app.GET("/api/:gateway/txtotal", controller.GetTxTotal)
 }

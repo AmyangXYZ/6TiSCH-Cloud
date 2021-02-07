@@ -208,24 +208,25 @@ type NWStatData struct {
 func GetNWStat(gatewayName string, timeRange, now int64) ([]NWStatData, error) {
 	var n NWStatData
 	// query NW_DATA_SET_PER_UCONN
-	// var rows1 *sql.Rows
+	var rows1 *sql.Rows
 	// query E2E LATENCY from NW_DATA_SET_LATENCY
 	var rows2 *sql.Rows
 	// query Latency from SENSOR_DATA
 	var rows3 *sql.Rows
-	// query e2e latency successRatio of each device
+	// query uplink latency successRatio of each device
 	var rows4 *sql.Rows
-	// query latency successRatio of each device
+	// query uplink latency successRatio of each device
 	var rows5 *sql.Rows
+
 	nList := make([]NWStatData, 0)
 
 	if gatewayName == "any" {
-		// rows1, err = db.Query(`select SENSOR_ID, GATEWAY_NAME, AVG(MAC_TX_TOTAL_DIFF),
-		// AVG(MAC_TX_NOACK_DIFF), AVG(APP_PER_SENT_DIFF),AVG(APP_PER_LOST_DIFF) from NW_DATA_SET_PER_UCONN
-		// where TIMESTAMP>=? and TIMESTAMP<=? group by SENSOR_ID`, timeRange, now)
-		// if err != nil {
-		// 	return nList, err
-		// }
+		rows1, err = db.Query(`select SENSOR_ID, GATEWAY_NAME, AVG(MAC_TX_TOTAL_DIFF),
+		AVG(MAC_TX_NOACK_DIFF), AVG(APP_PER_SENT_DIFF),AVG(APP_PER_LOST_DIFF) from NW_DATA_SET_PER_UCONN
+		where TIMESTAMP>=? and TIMESTAMP<=? group by SENSOR_ID`, timeRange, now)
+		if err != nil {
+			return nList, err
+		}
 		rows2, err = db.Query(`select SENSOR_ID, GATEWAY_NAME, AVG(E2E_LATENCY),COUNT(E2E_LATENCY) from
 			NW_DATA_SET_LATENCY where TIMESTAMP>=? and TIMESTAMP<=? group by SENSOR_ID`, timeRange, now)
 		if err != nil {
@@ -247,12 +248,12 @@ func GetNWStat(gatewayName string, timeRange, now int64) ([]NWStatData, error) {
 			return nList, err
 		}
 	} else {
-		// rows1, err = db.Query(`select SENSOR_ID, GATEWAY_NAME, AVG(MAC_TX_TOTAL_DIFF),
-		// AVG(MAC_TX_NOACK_DIFF),AVG(APP_PER_SENT_DIFF),AVG(APP_PER_LOST_DIFF) from NW_DATA_SET_PER_UCONN
-		// where GATEWAY_NAME=? and TIMESTAMP>=? and TIMESTAMP<=? group by SENSOR_ID`, gatewayName, timeRange, now)
-		// if err != nil {
-		// 	return nList, err
-		// }
+		rows1, err = db.Query(`select SENSOR_ID, GATEWAY_NAME, AVG(MAC_TX_TOTAL_DIFF),
+		AVG(MAC_TX_NOACK_DIFF),AVG(APP_PER_SENT_DIFF),AVG(APP_PER_LOST_DIFF) from NW_DATA_SET_PER_UCONN
+		where GATEWAY_NAME=? and TIMESTAMP>=? and TIMESTAMP<=? group by SENSOR_ID`, gatewayName, timeRange, now)
+		if err != nil {
+			return nList, err
+		}
 		rows2, err = db.Query(`select SENSOR_ID, GATEWAY_NAME, AVG(E2E_LATENCY),COUNT(E2E_LATENCY) from
 			NW_DATA_SET_LATENCY where GATEWAY_NAME=? and TIMESTAMP>=? and TIMESTAMP<=? group by SENSOR_ID`, gatewayName, timeRange, now)
 		if err != nil {
@@ -278,22 +279,21 @@ func GetNWStat(gatewayName string, timeRange, now int64) ([]NWStatData, error) {
 	if err != nil {
 		return nList, err
 	}
-	// defer rows1.Close()
-	// // defer rows2.Close()
+	defer rows1.Close()
+	defer rows2.Close()
+	defer rows3.Close()
+	defer rows4.Close()
+	defer rows5.Close()
 
-	// for rows1.Next() {
-	// 	rows1.Scan(&n.SensorID, &n.Gateway, &n.AvgMACTxTotalDiff, &n.AvgMACTxNoACKDiff,
-	// 		&n.AvgAPPPERSentDiff, &n.AvgAPPPERLostDiff)
-	// 	nList = append(nList, n)
-	// }
-
-	// merge RTT
-	for rows2.Next() {
-		rows2.Scan(&n.SensorID, &n.Gateway, &n.AvgE2ELatency, &n.E2ELatencyCnt)
+	for rows1.Next() {
+		rows1.Scan(&n.SensorID, &n.Gateway, &n.AvgMACTxTotalDiff, &n.AvgMACTxNoACKDiff,
+			&n.AvgAPPPERSentDiff, &n.AvgAPPPERLostDiff)
 		// for i, v := range nList {
 		// 	if v.SensorID == n.SensorID && v.Gateway == n.Gateway {
-		// 		nList[i].AvgE2ELatency = n.AvgE2ELatency
-		// 		nList[i].E2ELatencyCnt = n.E2ELatencyCnt
+		// 		nList[i].AvgMACTxTotalDiff = n.AvgMACTxTotalDiff
+		// 		nList[i].AvgMACTxNoACKDiff = n.AvgMACTxNoACKDiff
+		// 		nList[i].AvgAPPPERSentDiff = n.AvgAPPPERSentDiff
+		// 		nList[i].AvgAPPPERLostDiff = n.AvgAPPPERLostDiff
 		// 		break
 		// 	}
 		// }
@@ -310,9 +310,33 @@ func GetNWStat(gatewayName string, timeRange, now int64) ([]NWStatData, error) {
 				break
 			}
 		}
-
+		// nList = append(nList, n)
 	}
 
+	// // merge uplink latency success (ratio)
+	for rows5.Next() {
+		rows5.Scan(&n.SensorID, &n.Gateway, &n.UplinkLatencySuccess)
+		for i, v := range nList {
+			if v.SensorID == n.SensorID && v.Gateway == n.Gateway {
+				nList[i].UplinkLatencySuccess = n.UplinkLatencySuccess
+				nList[i].UplinkLatencySR = nList[i].UplinkLatencySuccess / nList[i].UplinkLatencyCnt
+				break
+			}
+		}
+	}
+
+	// merge e2e latency
+	for rows2.Next() {
+		rows2.Scan(&n.SensorID, &n.Gateway, &n.AvgE2ELatency, &n.E2ELatencyCnt)
+		for i, v := range nList {
+			if v.SensorID == n.SensorID && v.Gateway == n.Gateway {
+				nList[i].AvgE2ELatency = n.AvgE2ELatency
+				nList[i].E2ELatencyCnt = n.E2ELatencyCnt
+				break
+			}
+		}
+
+	}
 	// merge e2e latency success (ratio)
 	for rows4.Next() {
 		rows4.Scan(&n.SensorID, &n.Gateway, &n.E2ELatencySuccess)
@@ -324,19 +348,25 @@ func GetNWStat(gatewayName string, timeRange, now int64) ([]NWStatData, error) {
 			}
 		}
 	}
-
-	// merge uplink latency success (ratio)
-	for rows5.Next() {
-		rows5.Scan(&n.SensorID, &n.Gateway, &n.UplinkLatencySuccess)
-		for i, v := range nList {
-			if v.SensorID == n.SensorID && v.Gateway == n.Gateway {
-				nList[i].UplinkLatencySuccess = n.UplinkLatencySuccess
-				nList[i].UplinkLatencySR = nList[i].UplinkLatencySuccess / nList[i].UplinkLatencyCnt
-				break
-			}
-		}
-	}
 	return nList, nil
+}
+
+func GetTxTotal(timeRange int64) (int64, error) {
+	var n int64
+	var rows *sql.Rows
+
+	rows, err = db.Query(`select SUM(TX_TOTAL) from NW_DATA_SET_PER_UCONN where TIMESTAMP>=? and TIMESTAMP in (select MAX(TIMESTAMP) from NW_DATA_SET_PER_UCONN group by SENSOR_ID);`, timeRange)
+	if err != nil {
+		return 0, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		rows.Scan(&n)
+		return n, nil
+	}
+
+	return 0, nil
 }
 
 // SensorNWStatData is each sensor's network statistic: average RSSi value
@@ -424,16 +454,18 @@ type ChInfo struct {
 	Timestamp int    `json:"timestamp"`
 	Channels  string `json:"channels"`
 	RSSI      string `json:"rssi"`
-	RxRSSI    string `json:"rx_rssi"`
-	TxNoACK   string `json:"tx_noack"`
-	TxTotal   string `json:"tx_total"`
+	// RxRSSI    string `json:"rx_rssi"`
+	// TxNoACK   string `json:"tx_noack"`
+	// TxTotal   string `json:"tx_total"`
 }
 
 func GetChInfoByID(gatewayName, sensorID string, timeRange, now int64) ([]ChInfo, error) {
 	var ch ChInfo
 	chList := make([]ChInfo, 0)
 
-	rows, err := db.Query(`select TIMESTAMP, CHANNELS, RSSI, RX_RSSI, TX_NOACK, TX_TOTAL from NW_DATA_SET_PER_CHINFO
+	// rows, err := db.Query(`select TIMESTAMP, CHANNELS, RSSI, RX_RSSI, TX_NOACK, TX_TOTAL from NW_DATA_SET_PER_CHINFO
+	// where GATEWAY_NAME=? and SENSOR_ID=? and TIMESTAMP>=? and TIMESTAMP<=?`, gatewayName, sensorID, timeRange, now)
+	rows, err := db.Query(`select TIMESTAMP, CHANNELS, RSSI from NW_DATA_SET_PER_CHINFO
 			where GATEWAY_NAME=? and SENSOR_ID=? and TIMESTAMP>=? and TIMESTAMP<=?`, gatewayName, sensorID, timeRange, now)
 	if err != nil {
 		return chList, err
@@ -441,7 +473,8 @@ func GetChInfoByID(gatewayName, sensorID string, timeRange, now int64) ([]ChInfo
 	defer rows.Close()
 
 	for rows.Next() {
-		rows.Scan(&ch.Timestamp, &ch.Channels, &ch.RSSI, &ch.RxRSSI, &ch.TxNoACK, &ch.TxTotal)
+		// rows.Scan(&ch.Timestamp, &ch.Channels, &ch.RSSI, &ch.RxRSSI, &ch.TxNoACK, &ch.TxTotal)
+		rows.Scan(&ch.Timestamp, &ch.Channels, &ch.RSSI)
 		chList = append(chList, ch)
 	}
 

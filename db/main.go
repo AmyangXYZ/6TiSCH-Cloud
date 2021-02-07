@@ -195,8 +195,8 @@ func handleSensorData(s sensor, gwn string) {
 
 	stmt1, err := db.Prepare(`INSERT INTO SENSOR_DATA (TIMESTAMP, GATEWAY_NAME, SENSOR_ID, TEMP, 
                 RHUM, LUX, PRESS, ACCELX, ACCELY, ACCELZ, LED, EH, EH1, CC2650_ACTIVE, CC2650_SLEEP,RF_TX, RF_RX, 
-                MSP432_ACTIVE, MSP432_SLEEP, GPSEN_ACTIVE, GPSEN_SLEEP, OTHERS, SEQUENCE, ASN_STAMP1, CHANNEL, BAT, LAST_UPLINK_LATENCY) 
-                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
+                MSP432_ACTIVE, MSP432_SLEEP, GPSEN_ACTIVE, GPSEN_SLEEP, OTHERS, SEQUENCE, ASN_STAMP1, CHANNEL, BAT, A2A_LATENCY, LAST_UPLINK_LATENCY) 
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
 	if err != nil {
 		Error.Println(stmt1, err)
 	}
@@ -204,7 +204,7 @@ func handleSensorData(s sensor, gwn string) {
 	_, err = stmt1.Exec(timestamp, gwn, s.ID, s.Data.Temp, s.Data.Rhum, s.Data.Lux, s.Data.Press,
 		s.Data.Accelx, s.Data.Accely, s.Data.Accelz, s.Data.LED, s.Data.Eh, s.Data.Eh1, s.Data.CC2650Active, s.Data.CC2650Sleep,
 		s.Data.RFTx, s.Data.RFRx, s.Data.MSP432Active, s.Data.MSP432Sleep, s.Data.GPSEnActive, s.Data.GPSEnSleep, s.Data.Others,
-		s.Data.Sequence, s.Data.ASNStamp1, s.Data.Channel, s.Data.Bat, s.Data.LastUplinkLatency)
+		s.Data.Sequence, s.Data.ASNStamp1, s.Data.Channel, s.Data.Bat, s.Data.A2ALatency, s.Data.LastUplinkLatency)
 	if err != nil {
 		Error.Println(stmt1, err)
 	}
@@ -312,6 +312,16 @@ func handleNetworkData2(n2 network2, gwn string) {
 	if err != nil {
 		Error.Println(stmt, err)
 	}
+
+	stmt2, err := db.Prepare(`UPDATE TOPOLOGY_DATA SET LAST_SEEN=? where (GATEWAY_NAME=? and SENSOR_ID=?) or SENSOR_ID=1`)
+	if err != nil {
+		Error.Println(stmt2, err)
+	}
+	defer stmt2.Close()
+	_, err = stmt2.Exec(timestamp, gwn, n2.ID)
+	if err != nil {
+		Error.Println(stmt2, err)
+	}
 }
 
 // init logger and db
@@ -349,7 +359,7 @@ func init() {
                         GPS_Lon DOUBLE NOT NULL,
                         TYPE VARCHAR(64) NOT NULL,
                         POWER VARCHAR(64) NOT NULL,
-						INDEX TOPO_INDEX(FIRST_APPEAR, GATEWAY_NAME));`)
+                        INDEX TOPO_INDEX(FIRST_APPEAR, GATEWAY_NAME));`)
 	if err != nil {
 		Error.Panicln(err)
 	}
@@ -364,7 +374,7 @@ func init() {
                         LAYER SMALLINT NOT NULL,
                         START SMALLINT NOT NULL,
                         END SMALLINT NOT NULL,
-						INDEX PART_INDEX(TIMESTAMP, GATEWAY_NAME));`)
+                        INDEX PART_INDEX(TIMESTAMP, GATEWAY_NAME));`)
 	if err != nil {
 		Error.Panicln(err)
 	}
@@ -379,11 +389,11 @@ func init() {
                         SUBSLOT_OFFSET SMALLINT NOT NULL,
                         SUBSLOT_PERIOD SMALLINT NOT NULL,
                         TYPE VARCHAR(16) NOT NULL,
-						Layer SMALLINT,
+                        Layer SMALLINT,
                         SENDER SMALLINT,
                         RECEIVER INT,
                         IS_OPTIMAL SMALLINT,
-						INDEX SCHED_INDEX(TIMESTAMP,GATEWAY_NAME(16)));`)
+                        INDEX SCHED_INDEX(TIMESTAMP,GATEWAY_NAME(16)));`)
 	if err != nil {
 		Error.Panicln(err)
 	}
@@ -417,8 +427,9 @@ func init() {
                 ASN_STAMP1 INT NOT NULL,
                 CHANNEL TINYINT UNSIGNED NOT NULL,
                 BAT FLOAT NOT NULL,
-				LAST_UPLINK_LATENCY FLOAT NOT NULL,
-				INDEX SENSOR_INDEX(TIMESTAMP, GATEWAY_NAME));`)
+                A2A_LATENCY FLOAT NOT NULL,
+                LAST_UPLINK_LATENCY FLOAT NOT NULL,
+                INDEX SENSOR_INDEX(TIMESTAMP, GATEWAY_NAME));`)
 	if err != nil {
 		Error.Panicln(err)
 	}
@@ -446,7 +457,7 @@ func init() {
                 MAC_TX_LENGTH_TOTAL_DIFF INT NOT NULL,
                 APP_PER_LOST_DIFF INT NOT NULL,
                 APP_PER_SENT_DIFF INT NOT NULL,
-				INDEX NW_PER_INDEX(TIMESTAMP, GATEWAY_NAME));`)
+                INDEX NW_PER_INDEX(TIMESTAMP, GATEWAY_NAME));`)
 	if err != nil {
 		Error.Panicln(err)
 	}
@@ -462,7 +473,7 @@ func init() {
                 RX_RSSI  VARCHAR(128) NOT NULL,
                 TX_NOACK VARCHAR(128) NOT NULL,
                 TX_TOTAL VARCHAR(64) NOT NULL,
-				INDEX CHINFO_INDEX(TIMESTAMP,GATEWAY_NAME));`)
+                INDEX CHINFO_INDEX(TIMESTAMP,GATEWAY_NAME));`)
 	if err != nil {
 		Error.Panicln(err)
 	}
@@ -484,7 +495,7 @@ func init() {
                 NUM_LOWPAN_RX_LOST SMALLINT UNSIGNED NOT NULL,
                 NUM_COAP_RX_LOST SMALLINT UNSIGNED NOT NULL,
                 NUM_COAP_OBS_DIS SMALLINT UNSIGNED NOT NULL,
-				INDEX NW_INFO_INDEX(TIMESTAMP,GATEWAY_NAME));`)
+                INDEX NW_INFO_INDEX(TIMESTAMP,GATEWAY_NAME));`)
 	if err != nil {
 		Error.Panicln(err)
 	}
@@ -591,30 +602,30 @@ type (
 		Data dataSensor `json:"data"`
 	}
 	dataSensor struct {
-		Temp         float32 `json:"temp"`
-		Rhum         int     `json:"rhum"`
-		Lux          int     `json:"lux"`
-		Press        int     `json:"press"`
-		Accelx       float32 `json:"accelx"`
-		Accely       float32 `json:"accely"`
-		Accelz       float32 `json:"type"`
-		LED          int     `json:"led"`
-		Eh           int     `json:"eh"`
-		Eh1          int     `json:"eh1"`
-		CC2650Active int     `json:"cc2650_active"`
-		CC2650Sleep  int     `json:"cc2650_sleep"`
-		RFTx         float32 `json:"rf_tx"`
-		RFRx         float32 `json:"rf_rx"`
-		MSP432Active int     `json:"msp432_active"`
-		MSP432Sleep  int     `json:"msp432_sleep"`
-		GPSEnActive  float32 `json:"gpsen_active"`
-		GPSEnSleep   float32 `json:"gpsen_sleep"`
-		Others       int     `json:"others"`
-		Sequence     int     `json:"sequence"`
-		ASNStamp1    int     `json:"asn_stamp1"`
-		Channel      int     `json:"channel"`
-		Bat          float32 `json:"bat"`
-		// A2ALatency     float32 `json:"a2a_latency"`
+		Temp              float32 `json:"temp"`
+		Rhum              int     `json:"rhum"`
+		Lux               int     `json:"lux"`
+		Press             int     `json:"press"`
+		Accelx            float32 `json:"accelx"`
+		Accely            float32 `json:"accely"`
+		Accelz            float32 `json:"type"`
+		LED               int     `json:"led"`
+		Eh                int     `json:"eh"`
+		Eh1               int     `json:"eh1"`
+		CC2650Active      int     `json:"cc2650_active"`
+		CC2650Sleep       int     `json:"cc2650_sleep"`
+		RFTx              float32 `json:"rf_tx"`
+		RFRx              float32 `json:"rf_rx"`
+		MSP432Active      int     `json:"msp432_active"`
+		MSP432Sleep       int     `json:"msp432_sleep"`
+		GPSEnActive       float32 `json:"gpsen_active"`
+		GPSEnSleep        float32 `json:"gpsen_sleep"`
+		Others            int     `json:"others"`
+		Sequence          int     `json:"sequence"`
+		ASNStamp1         int     `json:"asn_stamp1"`
+		Channel           int     `json:"channel"`
+		Bat               float32 `json:"bat"`
+		A2ALatency        float32 `json:"a2a_latency"`
 		LastUplinkLatency float32 `json:"last_uplink_latency"`
 	}
 

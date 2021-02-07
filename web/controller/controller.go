@@ -197,6 +197,19 @@ func GetNoiseLevel(ctx *sweetygo.Context) error {
 	return ctx.JSON(200, 1, "success", nlData)
 }
 
+// GetTxTotal handles GET /api/:gateway/txtotal
+func GetTxTotal(ctx *sweetygo.Context) error {
+	timeRange, _ := range2stamp(ctx.Param("range"))
+	n, err := model.GetTxTotal(timeRange)
+	if err != nil {
+		return ctx.JSON(500, 0, err.Error(), nil)
+	}
+	if n == 0 {
+		return ctx.JSON(200, 0, "no result found", nil)
+	}
+	return ctx.JSON(200, 1, "success", n)
+}
+
 func range2stamp(timeRange string) (int64, int64) {
 	now := time.Now().UnixNano() / 1e6
 	startTime := int64(0)
