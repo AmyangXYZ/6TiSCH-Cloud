@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"time"
 
-	"../model"
+	"github.com/AmyangXYZ/6TiSCH-Cloud/web/model"
 	"github.com/AmyangXYZ/sweetygo"
 )
 
@@ -214,9 +214,13 @@ func range2stamp(timeRange string) (int64, int64) {
 	now := time.Now().UnixNano() / 1e6
 	startTime := int64(0)
 	switch timeRange {
-	case "hour":
+	case "15min":
+		startTime = now - 15*60*1000
+	case "30min":
+		startTime = now - 30*60*1000
+	case "1hr":
 		startTime = now - 60*60*1000
-	case "4hours":
+	case "4hr":
 		startTime = now - 4*60*60*1000
 	case "day":
 		startTime = now - 60*60*24*1000

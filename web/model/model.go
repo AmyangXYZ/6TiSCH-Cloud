@@ -300,6 +300,7 @@ func GetNWStat(gatewayName string, timeRange, now int64) ([]NWStatData, error) {
 		nList = append(nList, n)
 	}
 
+	var found = false
 	// merge LATENCY
 	for rows3.Next() {
 		rows3.Scan(&n.SensorID, &n.Gateway, &n.AvgUplinkLatency, &n.UplinkLatencyCnt)
@@ -307,12 +308,16 @@ func GetNWStat(gatewayName string, timeRange, now int64) ([]NWStatData, error) {
 			if v.SensorID == n.SensorID && v.Gateway == n.Gateway {
 				nList[i].AvgUplinkLatency = n.AvgUplinkLatency
 				nList[i].UplinkLatencyCnt = n.UplinkLatencyCnt
+				found = true
 				break
 			}
 		}
-		// nList = append(nList, n)
-	}
+		if !found {
+			nList = append(nList, n)
+		}
 
+	}
+	found = false
 	// // merge uplink latency success (ratio)
 	for rows5.Next() {
 		rows5.Scan(&n.SensorID, &n.Gateway, &n.UplinkLatencySuccess)
@@ -320,11 +325,16 @@ func GetNWStat(gatewayName string, timeRange, now int64) ([]NWStatData, error) {
 			if v.SensorID == n.SensorID && v.Gateway == n.Gateway {
 				nList[i].UplinkLatencySuccess = n.UplinkLatencySuccess
 				nList[i].UplinkLatencySR = nList[i].UplinkLatencySuccess / nList[i].UplinkLatencyCnt
+				found = true
 				break
 			}
 		}
+		if !found {
+			nList = append(nList, n)
+		}
 	}
 
+	found = false
 	// merge e2e latency
 	for rows2.Next() {
 		rows2.Scan(&n.SensorID, &n.Gateway, &n.AvgE2ELatency, &n.E2ELatencyCnt)
@@ -332,11 +342,17 @@ func GetNWStat(gatewayName string, timeRange, now int64) ([]NWStatData, error) {
 			if v.SensorID == n.SensorID && v.Gateway == n.Gateway {
 				nList[i].AvgE2ELatency = n.AvgE2ELatency
 				nList[i].E2ELatencyCnt = n.E2ELatencyCnt
+				found = true
 				break
 			}
 		}
+		if !found {
+			nList = append(nList, n)
+		}
 
 	}
+
+	found = false
 	// merge e2e latency success (ratio)
 	for rows4.Next() {
 		rows4.Scan(&n.SensorID, &n.Gateway, &n.E2ELatencySuccess)
@@ -344,8 +360,12 @@ func GetNWStat(gatewayName string, timeRange, now int64) ([]NWStatData, error) {
 			if v.SensorID == n.SensorID && v.Gateway == n.Gateway {
 				nList[i].E2ELatencySuccess = n.E2ELatencySuccess
 				nList[i].E2ELatencySR = nList[i].E2ELatencySuccess / nList[i].E2ELatencyCnt
+				found = true
 				break
 			}
+		}
+		if !found {
+			nList = append(nList, n)
 		}
 	}
 	return nList, nil

@@ -1,7 +1,7 @@
 package router
 
 import (
-	"../controller"
+	"github.com/AmyangXYZ/6TiSCH-Cloud/web/controller"
 	"github.com/AmyangXYZ/sweetygo"
 )
 

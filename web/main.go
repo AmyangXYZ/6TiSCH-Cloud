@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"./router"
+	"github.com/AmyangXYZ/6TiSCH-Cloud/web/router"
 	"github.com/AmyangXYZ/sweetygo"
 	"github.com/AmyangXYZ/sweetygo/middlewares"
 )
