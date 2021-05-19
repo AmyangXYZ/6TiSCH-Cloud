@@ -161,10 +161,11 @@ func GetSchedule() ([]ScheduleData, error) {
 }
 
 type PartitionData struct {
-	Type  string `json:"type"`
-	Row   int    `json:"row"`
-	Layer int    `json:"layer"`
-	Range [2]int `json:"range"`
+	Type     string `json:"type"`
+	Row      int    `json:"row"`
+	Layer    int    `json:"layer"`
+	Channels [2]int `json:"channels"`
+	Range    [2]int `json:"range"`
 }
 
 func GetPartition() ([]PartitionData, error) {
@@ -172,14 +173,14 @@ func GetPartition() ([]PartitionData, error) {
 	var rows *sql.Rows
 	pList := make([]PartitionData, 0)
 
-	rows, err = db.Query(`select ROWW, TYPE, LAYER, START, END from PARTITION_DATA`)
+	rows, err = db.Query(`select ROWW, TYPE, LAYER, CHANNEL_START, CHANNEL_END, START, END from PARTITION_DATA`)
 	if err != nil {
 		return pList, err
 	}
 	defer rows.Close()
 
 	for rows.Next() {
-		rows.Scan(&p.Row, &p.Type, &p.Layer, &p.Range[0], &p.Range[1])
+		rows.Scan(&p.Row, &p.Type, &p.Layer, &p.Channels[0], &p.Channels[1], &p.Range[0], &p.Range[1])
 		pList = append(pList, p)
 	}
 
@@ -474,7 +475,7 @@ type ChInfo struct {
 	Timestamp int    `json:"timestamp"`
 	Channels  string `json:"channels"`
 	RSSI      string `json:"rssi"`
-	// RxRSSI    string `json:"rx_rssi"`
+	RxRSSI    string `json:"rx_rssi"`
 	// TxNoACK   string `json:"tx_noack"`
 	// TxTotal   string `json:"tx_total"`
 }
@@ -485,7 +486,7 @@ func GetChInfoByID(gatewayName, sensorID string, timeRange, now int64) ([]ChInfo
 
 	// rows, err := db.Query(`select TIMESTAMP, CHANNELS, RSSI, RX_RSSI, TX_NOACK, TX_TOTAL from NW_DATA_SET_PER_CHINFO
 	// where GATEWAY_NAME=? and SENSOR_ID=? and TIMESTAMP>=? and TIMESTAMP<=?`, gatewayName, sensorID, timeRange, now)
-	rows, err := db.Query(`select TIMESTAMP, CHANNELS, RSSI from NW_DATA_SET_PER_CHINFO
+	rows, err := db.Query(`select TIMESTAMP, CHANNELS, RSSI, RXRSSI from NW_DATA_SET_PER_CHINFO
 			where GATEWAY_NAME=? and SENSOR_ID=? and TIMESTAMP>=? and TIMESTAMP<=?`, gatewayName, sensorID, timeRange, now)
 	if err != nil {
 		return chList, err
@@ -494,7 +495,7 @@ func GetChInfoByID(gatewayName, sensorID string, timeRange, now int64) ([]ChInfo
 
 	for rows.Next() {
 		// rows.Scan(&ch.Timestamp, &ch.Channels, &ch.RSSI, &ch.RxRSSI, &ch.TxNoACK, &ch.TxTotal)
-		rows.Scan(&ch.Timestamp, &ch.Channels, &ch.RSSI)
+		rows.Scan(&ch.Timestamp, &ch.Channels, &ch.RSSI, &ch.RxRSSI)
 		chList = append(chList, ch)
 	}
 

@@ -152,13 +152,13 @@ func handlePartitionData(pt partition, gwn string) {
 		Error.Println(err)
 	}
 
-	stmt, err := db.Prepare(`INSERT INTO PARTITION_DATA(TIMESTAMP, GATEWAY_NAME, ROWW, TYPE, LAYER, START, END) VALUES(?,?,?,?,?,?,?)`)
+	stmt, err := db.Prepare(`INSERT INTO PARTITION_DATA(TIMESTAMP, GATEWAY_NAME, ROWW, TYPE, LAYER, CHANNEL_START,CHANNEL_END, START, END) VALUES(?,?,?,?,?,?,?,?,?)`)
 	if err != nil {
 		Error.Println(stmt, err)
 	}
 	defer stmt.Close()
 	for i := range pt.Data {
-		_, err = stmt.Exec(timestamp, gwn, pt.Data[i].Row, pt.Data[i].Type, pt.Data[i].Layer, pt.Data[i].Range[0], pt.Data[i].Range[1])
+		_, err = stmt.Exec(timestamp, gwn, pt.Data[i].Row, pt.Data[i].Type, pt.Data[i].Layer, pt.Data[i].Channels[0], pt.Data[i].Channels[1], pt.Data[i].Range[0], pt.Data[i].Range[1])
 		if err != nil {
 			Error.Println(err)
 		}
@@ -372,6 +372,8 @@ func init() {
                         ROWW SMALLINT NOT NULL,
                         TYPE VARCHAR(16) NOT NULL,
                         LAYER SMALLINT NOT NULL,
+						CHANNEL_START SMALLINT NOT NULL,
+                        CHANNEL_END SMALLINT NOT NULL,
                         START SMALLINT NOT NULL,
                         END SMALLINT NOT NULL,
                         INDEX PART_INDEX(TIMESTAMP, GATEWAY_NAME));`)
@@ -576,10 +578,11 @@ type (
 		Data []dataPartition `json:"data"`
 	}
 	dataPartition struct {
-		Row   int    `json:"row"`
-		Type  string `json:"type"`
-		Layer int    `json:"layer"`
-		Range [2]int `json:"range"`
+		Row      int    `json:"row"`
+		Type     string `json:"type"`
+		Layer    int    `json:"layer"`
+		Channels [2]int `json:"channels"`
+		Range    [2]int `json:"range"`
 	}
 
 	schedule struct {
