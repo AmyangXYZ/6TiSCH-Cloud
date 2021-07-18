@@ -486,7 +486,7 @@ func GetChInfoByID(gatewayName, sensorID string, timeRange, now int64) ([]ChInfo
 
 	// rows, err := db.Query(`select TIMESTAMP, CHANNELS, RSSI, RX_RSSI, TX_NOACK, TX_TOTAL from NW_DATA_SET_PER_CHINFO
 	// where GATEWAY_NAME=? and SENSOR_ID=? and TIMESTAMP>=? and TIMESTAMP<=?`, gatewayName, sensorID, timeRange, now)
-	rows, err := db.Query(`select TIMESTAMP, CHANNELS, RSSI, RXRSSI from NW_DATA_SET_PER_CHINFO
+	rows, err := db.Query(`select TIMESTAMP, CHANNELS, RSSI, RX_RSSI from NW_DATA_SET_PER_CHINFO
 			where GATEWAY_NAME=? and SENSOR_ID=? and TIMESTAMP>=? and TIMESTAMP<=?`, gatewayName, sensorID, timeRange, now)
 	if err != nil {
 		return chList, err
