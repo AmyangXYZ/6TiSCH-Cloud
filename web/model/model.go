@@ -192,10 +192,10 @@ type PartitionHARPData struct {
 	Range [2]int `json:"range"`
 }
 
-func GetPartitionHARP() ([]PartitionData, error) {
-	var p PartitionData
+func GetPartitionHARP() ([]PartitionHARPData, error) {
+	var p PartitionHARPData
 	var rows *sql.Rows
-	pList := make([]PartitionData, 0)
+	pList := make([]PartitionHARPData, 0)
 
 	rows, err = db.Query(`select TYPE, START, END from PARTITION_HARP_DATA`)
 	if err != nil {
