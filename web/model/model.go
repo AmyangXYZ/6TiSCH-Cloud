@@ -187,6 +187,30 @@ func GetPartition() ([]PartitionData, error) {
 	return pList, nil
 }
 
+type PartitionHARPData struct {
+	Type  string `json:"type"`
+	Range [2]int `json:"range"`
+}
+
+func GetPartitionHARP() ([]PartitionData, error) {
+	var p PartitionData
+	var rows *sql.Rows
+	pList := make([]PartitionData, 0)
+
+	rows, err = db.Query(`select TYPE, START, END from PARTITION_HARP_DATA`)
+	if err != nil {
+		return pList, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		rows.Scan(&p.Type, &p.Range[0], &p.Range[1])
+		pList = append(pList, p)
+	}
+
+	return pList, nil
+}
+
 // NWStatData is all sensor's basic network stat data of one gateway
 type NWStatData struct {
 	SensorID int    `json:"sensor_id"`

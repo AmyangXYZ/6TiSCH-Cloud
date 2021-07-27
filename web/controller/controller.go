@@ -95,6 +95,18 @@ func GetPartition(ctx *sweetygo.Context) error {
 	return ctx.JSON(200, 1, "success", partitionData)
 }
 
+// GetPartitionHARP handles GET /api/:gateway/schedule/partition_harp
+func GetPartitionHARP(ctx *sweetygo.Context) error {
+	partitionData, err := model.GetPartitionHARP()
+	if err != nil {
+		return ctx.JSON(500, 0, err.Error(), nil)
+	}
+	if len(partitionData) == 0 {
+		return ctx.JSON(200, 0, "no result found", nil)
+	}
+	return ctx.JSON(200, 1, "success", partitionData)
+}
+
 // GetNWStat handles GET /api/:gateway/nwstat
 func GetNWStat(ctx *sweetygo.Context) error {
 	timeRange, now := range2stamp(ctx.Param("range"))

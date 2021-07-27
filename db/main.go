@@ -74,6 +74,14 @@ func handle(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			handlePartitionData(pt, gwn)
+		case "partition_data_harp":
+			var pt partition
+			err = json.Unmarshal(msg, &pt)
+			if err != nil {
+				Error.Println(err)
+				return
+			}
+			handlePartitionHARPData(pt, gwn)
 		case "schedule_data":
 			var sch schedule
 			err = json.Unmarshal(msg, &sch)
@@ -159,6 +167,30 @@ func handlePartitionData(pt partition, gwn string) {
 	defer stmt.Close()
 	for i := range pt.Data {
 		_, err = stmt.Exec(timestamp, gwn, pt.Data[i].Row, pt.Data[i].Type, pt.Data[i].Layer, pt.Data[i].Channels[0], pt.Data[i].Channels[1], pt.Data[i].Range[0], pt.Data[i].Range[1])
+		if err != nil {
+			Error.Println(err)
+		}
+	}
+}
+
+// TODO - add sub-partitions
+func handlePartitionHARPData(pt partition, gwn string) {
+	t := time.Now()
+	timestamp := t.UnixNano() / 1e6
+
+	// clear table
+	_, err := db.Exec("DELETE FROM PARTITION_HARP_DATA where 1")
+	if err != nil {
+		Error.Println(err)
+	}
+
+	stmt, err := db.Prepare(`INSERT INTO PARTITION_HARP_DATA(TIMESTAMP, GATEWAY_NAME, TYPE, START, END) VALUES(?,?,?,?,?)`)
+	if err != nil {
+		Error.Println(stmt, err)
+	}
+	defer stmt.Close()
+	for i := range pt.Data {
+		_, err = stmt.Exec(timestamp, gwn, pt.Data[i].Type, pt.Data[i].Range[0], pt.Data[i].Range[1])
 		if err != nil {
 			Error.Println(err)
 		}
@@ -381,6 +413,19 @@ func init() {
 		Error.Panicln(err)
 	}
 	Info.Println("Table PARTITION_DATA ready")
+
+	// PARTITION_HARP_DATA
+	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS PARTITION_HARP_DATA (
+		TIMESTAMP BIGINT,
+		GATEWAY_NAME VARCHAR(16) NOT NULL,
+		TYPE VARCHAR(16) NOT NULL,
+		START SMALLINT NOT NULL,
+		END SMALLINT NOT NULL,
+		INDEX PART_INDEX(TIMESTAMP, GATEWAY_NAME));`)
+	if err != nil {
+		Error.Panicln(err)
+	}
+	Info.Println("Table PARTITION_HARP_DATA ready")
 
 	// SCHEDULE_DATA
 	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS SCHEDULE_DATA (
