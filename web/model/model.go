@@ -34,8 +34,8 @@ func init() {
 
 // Node info for topology.
 type Node struct {
-	FirstAppear int    `json:"first_appear"`
-	LastSeen    int    `json:"last_seen"`
+	FirstAppear int64  `json:"first_appear"`
+	LastSeen    int64  `json:"last_seen"`
 	Gateway     string `json:"gateway"`
 	SensorID    int    `json:"sensor_id"`
 	Address     string `json:"address"`
@@ -105,8 +105,8 @@ func GetTopology(gatewayName string, timeRange, now int64) ([]Node, error) {
 }
 
 type TopoHistoryData struct {
-	FirstAppear int    `json:"first_appear"`
-	LastSeen    int    `json:"last_seen"`
+	FirstAppear int64  `json:"first_appear"`
+	LastSeen    int64  `json:"last_seen"`
 	Gateway     string `json:"gateway"`
 	SensorID    int    `json:"sensor_id"`
 	Parent      int    `json:"parent"`
@@ -444,17 +444,17 @@ func GetTxTotal(timeRange int64) (int64, error) {
 
 // SensorNWStatData is each sensor's network statistic: average RSSi value
 type SensorNWStatData struct {
-	Timestamp int `json:"timestamp"`
-	AvgRSSI   int `json:"avg_rssi"`
+	Timestamp int64 `json:"timestamp"`
+	AvgRSSI   int   `json:"avg_rssi"`
 }
 
 // SensorNWStatAdvData is each sensor's network statistic detail
 type SensorNWStatAdvData struct {
-	Timestamp      int `json:"timestamp"`
-	MacTxTotalDiff int `json:"mac_tx_total_diff"`
-	MacTxNoAckDiff int `json:"mac_tx_noack_diff"`
-	AppPERSentDiff int `json:"app_per_sent_diff"`
-	AppPERLostDiff int `json:"app_per_lost_diff"`
+	Timestamp      int64 `json:"timestamp"`
+	MacTxTotalDiff int   `json:"mac_tx_total_diff"`
+	MacTxNoAckDiff int   `json:"mac_tx_noack_diff"`
+	AppPERSentDiff int   `json:"app_per_sent_diff"`
+	AppPERLostDiff int   `json:"app_per_lost_diff"`
 }
 
 func GetNWStatByID(gatewayName, sensorID string, timeRange, now int64) ([]SensorNWStatData, error) {
@@ -500,7 +500,7 @@ func GetNWStatAdvByID(gatewayName, sensorID string, timeRange, now int64) ([]Sen
 }
 
 type Latency struct {
-	Timestamp     int     `json:"timestamp"`
+	Timestamp     int64   `json:"timestamp"`
 	UplinkLatency float32 `json:"uplink_latency"`
 }
 
@@ -524,7 +524,7 @@ func GetLatencyByID(gatewayName, sensorID string, timeRange, now int64) ([]Laten
 }
 
 type ChInfo struct {
-	Timestamp int    `json:"timestamp"`
+	Timestamp int64  `json:"timestamp"`
 	Channels  string `json:"channels"`
 	RSSI      string `json:"rssi"`
 	RxRSSI    string `json:"rx_rssi"`
@@ -591,7 +591,7 @@ func GetBattery(gatewayName string, timeRange, now int64) ([]SensorBatteryData, 
 }
 
 type SensorBatteryByIDData struct {
-	Timestamp  int     `json:"timestamp"`
+	Timestamp  int64   `json:"timestamp"`
 	PowerUsage float64 `json:"power_usage"`
 }
 
