@@ -197,7 +197,7 @@ func GetPartitionHARP() ([]PartitionHARPData, error) {
 	var rows *sql.Rows
 	pList := make([]PartitionHARPData, 0)
 
-	rows, err = db.Query(`select TYPE, START, END from PARTITION_HARP_DATA`)
+	rows, err = db.Query(`select TYPE, START, END from HARP_PARTITION_DATA`)
 	if err != nil {
 		return pList, err
 	}
@@ -209,6 +209,34 @@ func GetPartitionHARP() ([]PartitionHARPData, error) {
 	}
 
 	return pList, nil
+}
+
+type SubPartitionHARPData struct {
+	ID      int `json:"id"`
+	Layer   int `json:"layer"`
+	TsStart int `json:"ts_start"`
+	TsEnd   int `json:"ts_end"`
+	ChStart int `json:"ch_start"`
+	ChEnd   int `json:"ch_end"`
+}
+
+func GetSubPartitionHARP() ([]SubPartitionHARPData, error) {
+	var sp SubPartitionHARPData
+	var rows *sql.Rows
+	spList := make([]SubPartitionHARPData, 0)
+
+	rows, err = db.Query(`select SENSOR_ID, LAYER, TS_START, TS_END, CH_START, CH_END from HARP_SP_DATA`)
+	if err != nil {
+		return spList, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		rows.Scan(&sp.ID, &sp.Layer, &sp.TsStart, &sp.TsEnd, &sp.ChStart, &sp.ChEnd)
+		spList = append(spList, sp)
+	}
+
+	return spList, nil
 }
 
 // NWStatData is all sensor's basic network stat data of one gateway
