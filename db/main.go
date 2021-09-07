@@ -191,7 +191,12 @@ func handlePartitionHARPData(pt partition, gwn string) {
 		Error.Println(err)
 	}
 	// clear table
-	_, err = db.Exec("DELETE FROM SCHEDULE_DATA where 1")
+	_, err = db.Exec("DELETE FROM HARP_SP_DATA where 1")
+	if err != nil {
+		Error.Println(err)
+	}
+	// clear table
+	_, err := db.Exec("DELETE FROM SCHEDULE_DATA where 1")
 	if err != nil {
 		Error.Println(err)
 	}
