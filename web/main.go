@@ -1,7 +1,7 @@
 package main
 
 import (
-	"os"
+	// "os"
 
 	"github.com/AmyangXYZ/6TiSCH-Cloud/web/router"
 	"github.com/AmyangXYZ/sweetygo"
@@ -9,7 +9,7 @@ import (
 )
 
 var (
-	addr   = ":8888"
+	addr   = ":80"
 	tplDir = "templates"
 )
 
@@ -17,7 +17,7 @@ func main() {
 	app := sweetygo.New()
 
 	app.SetTemplates(tplDir, nil)
-	app.USE(middlewares.Logger(os.Stdout, middlewares.DefaultSkipper))
+	// app.USE(middlewares.Logger(os.Stdout, middlewares.DefaultSkipper))
 	app.USE(middlewares.CORS(middlewares.CORSOpt{}))
 	router.SetRouter(app)
 
