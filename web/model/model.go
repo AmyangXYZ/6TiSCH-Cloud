@@ -500,8 +500,13 @@ func GetNWStatAdvByID(gatewayName, sensorID string, timeRange, now int64) ([]Sen
 }
 
 type Latency struct {
+<<<<<<< HEAD
 	Timestamp  int64   `json:"timestamp"`
 	E2ELatency float32 `json:"e2e_latency"`
+=======
+	Timestamp     int64   `json:"timestamp"`
+	UplinkLatency float32 `json:"uplink_latency"`
+>>>>>>> 43f474b23223e7d6e0d286b1f2e8a00c4ff14b6a
 }
 
 func GetLatencyByID(gatewayName, sensorID string, timeRange, now int64) ([]Latency, error) {
