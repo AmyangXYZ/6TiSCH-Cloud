@@ -407,9 +407,10 @@ func init() {
 	Info = log.New(infoHandle, "[*] INFO: ", log.Ldate|log.Ltime)
 	Error = log.New(errorHandle, "[!] ERROR: ", log.Ldate|log.Ltime|log.Lshortfile)
 
-	dbAddr := fmt.Sprintf("root:%s@tcp(127.0.0.1:3306)/6tisch", os.Getenv("DBPasswd"))
-	// dbAddr := fmt.Sprintf("root:%s@tcp(127.0.0.1:3306)/6tisch", "1234")
-	db, _ = sql.Open("mysql", dbAddr)
+	db, _ = sql.Open("mysql", fmt.Sprintf("%v:%v@(db:3306)/%v",
+		os.Getenv("DB_USER"),
+		os.Getenv("DB_PASSWORD"),
+		os.Getenv("DB_DB")))
 	for {
 		if err := db.Ping(); err != nil {
 			Error.Println(err, ", retry in 10s...")

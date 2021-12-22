@@ -1,25 +1,32 @@
 package main
 
 import (
-	// "os"
+	"time"
 
-	"github.com/AmyangXYZ/6TiSCH-Cloud/web/router"
-	"github.com/AmyangXYZ/sweetygo"
-	"github.com/AmyangXYZ/sweetygo/middlewares"
+	"github.com/AmyangXYZ/sgo"
+	"github.com/AmyangXYZ/sgo/middlewares"
 )
 
 var (
-	addr   = ":80"
-	tplDir = "templates"
+	addr               = ":80"
+	tplDir             = "templates"
+	lastBootTime int64 = 0
 )
 
 func main() {
-	app := sweetygo.New()
+	app := sgo.New()
+
+	go func() {
+		for {
+			lastBootTime = modelGetLastBootTime()
+			time.Sleep(1 * time.Minute)
+		}
+	}()
 
 	app.SetTemplates(tplDir, nil)
 	// app.USE(middlewares.Logger(os.Stdout, middlewares.DefaultSkipper))
 	app.USE(middlewares.CORS(middlewares.CORSOpt{}))
-	router.SetRouter(app)
+	SetRouter(app)
 
 	app.Run(addr)
 }
