@@ -23,4 +23,4 @@ RUN mkdir templates &&\
 EXPOSE 80
 CMD ["./6tisch-cloud-web"]
 
-# docker buildx build -t amyangxyz111/rethi-comm --platform linux/arm64,linux/amd64 .
+# docker buildx build -t amyangxyz111/6tisch-cloud-web --platform linux/arm64,linux/amd64,linux/arm/v7 --push .
