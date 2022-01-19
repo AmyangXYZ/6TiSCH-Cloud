@@ -22,4 +22,5 @@ func SetRouter(app *sgo.SGo) {
 	app.GET("/api/:gateway/battery/:sensorID", GetBatteryByID)
 	app.GET("/api/:gateway/noise", GetNoiseLevel)
 	app.GET("/api/:gateway/txtotal", GetTxTotal)
+	app.GET("/api/:gateway/:sensorID/sensors", GetSensorDataByID)
 }

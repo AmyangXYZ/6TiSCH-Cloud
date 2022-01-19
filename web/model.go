@@ -590,6 +590,35 @@ func modelGetBattery(gatewayName string, timeRange, now int64) ([]SensorBatteryD
 	return bList, nil
 }
 
+type SensorData struct {
+	Timestamp      int64   `json:"timestamp"`
+	Temperature    float64 `json:"temp"`
+	Luminosity     float64 `json:"lux"`
+	Pressure       float64 `json:"press"`
+	AccelerometerX float64 `json:"acc_x"`
+	AccelerometerY float64 `json:"acc_y"`
+	AccelerometerZ float64 `json:"acc_z"`
+}
+
+func modelGetSensorDataByID(sensorID string, timeRange, now int64) ([]SensorData, error) {
+	var s SensorData
+	var rows *sql.Rows
+	sList := make([]SensorData, 0)
+
+	rows, err = db.Query(`select TIMESTAMP,TEMP,LUX,PRESS,ACCELX,ACCELY,ACCELZ from SENSOR_DATA where SENSOR_ID=? and TIMESTAMP>=? and TIMESTAMP<=?`, sensorID, timeRange, now)
+	if err != nil {
+		return sList, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		rows.Scan(&s.Timestamp, &s.Temperature, &s.Luminosity, &s.Pressure, &s.AccelerometerX, &s.AccelerometerY, &s.AccelerometerZ)
+		sList = append(sList, s)
+	}
+
+	return sList, nil
+}
+
 type SensorBatteryByIDData struct {
 	Timestamp  int64   `json:"timestamp"`
 	PowerUsage float64 `json:"power_usage"`

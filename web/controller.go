@@ -221,6 +221,18 @@ func GetTxTotal(ctx *sgo.Context) error {
 	return ctx.JSON(200, 1, "success", n)
 }
 
+func GetSensorDataByID(ctx *sgo.Context) error {
+	timeRange, now := range2stamp(ctx.Param("range"))
+	n, err := modelGetSensorDataByID(ctx.Param("sensorID"), timeRange, now)
+	if err != nil {
+		return ctx.JSON(500, 0, err.Error(), nil)
+	}
+	if len(n) == 0 {
+		return ctx.JSON(200, 0, "no result found", nil)
+	}
+	return ctx.JSON(200, 1, "success", n)
+}
+
 func range2stamp(timeRange string) (int64, int64) {
 	now := time.Now().UnixNano() / 1e6
 	startTime := int64(0)
