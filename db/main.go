@@ -271,15 +271,15 @@ func handleSensorData(s sensor, gwn string) {
 	t := time.Now()
 	timestamp := t.UnixNano() / 1e6
 
-	stmt1, err := db.Prepare(`INSERT INTO SENSOR_DATA (TIMESTAMP, GATEWAY_NAME, SENSOR_ID, TEMP, 
+	stmt1, err := db.Prepare(`INSERT INTO SENSOR_DATA (TIMESTAMP, GATEWAY_NAME, SENSOR_ID, TEMP, HUMIDITY,ULTRASONIC,LVDT1,LVDT2,
                 RHUM, LUX, PRESS, ACCELX, ACCELY, ACCELZ, LED, EH, EH1, CC2650_ACTIVE, CC2650_SLEEP,RF_TX, RF_RX, 
                 MSP432_ACTIVE, MSP432_SLEEP, GPSEN_ACTIVE, GPSEN_SLEEP, OTHERS, SEQUENCE, ASN_STAMP1, CHANNEL, BAT, A2A_LATENCY, LAST_UPLINK_LATENCY) 
-                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
 	if err != nil {
 		Error.Println(stmt1, err)
 	}
 	defer stmt1.Close()
-	_, err = stmt1.Exec(timestamp, gwn, s.ID, s.Data.Temp, s.Data.Rhum, s.Data.Lux, s.Data.Press,
+	_, err = stmt1.Exec(timestamp, gwn, s.ID, s.Data.Temp, s.Data.Humidity, s.Data.Ultrasonic, s.Data.LVDT1, s.Data.LVDT2, s.Data.Rhum, s.Data.Lux, s.Data.Press,
 		s.Data.Accelx, s.Data.Accely, s.Data.Accelz, s.Data.LED, s.Data.Eh, s.Data.Eh1, s.Data.CC2650Active, s.Data.CC2650Sleep,
 		s.Data.RFTx, s.Data.RFRx, s.Data.MSP432Active, s.Data.MSP432Sleep, s.Data.GPSEnActive, s.Data.GPSEnSleep, s.Data.Others,
 		s.Data.Sequence, s.Data.ASNStamp1, s.Data.Channel, s.Data.Bat, s.Data.A2ALatency, s.Data.LastUplinkLatency)
@@ -514,7 +514,11 @@ func init() {
                 TIMESTAMP BIGINT,
                 GATEWAY_NAME VARCHAR(16) NOT NULL,
                 SENSOR_ID SMALLINT UNSIGNED NOT NULL,
-                TEMP SMALLINT UNSIGNED NOT NULL,
+                TEMP FLOAT NOT NULL,
+				HUMIDITY FLOAT NOT NULL,
+				ULTRASONIC FLOAT NOT NULL,
+				LVDT1 FLOAT NOT NULL,
+				LVDT2 FLOAT NOT NULL,
                 RHUM SMALLINT UNSIGNED NOT NULL,
                 LUX SMALLINT UNSIGNED NOT NULL,
                 PRESS SMALLINT UNSIGNED NOT NULL,
@@ -726,7 +730,12 @@ type (
 		Data dataSensor `json:"data"`
 	}
 	dataSensor struct {
-		Temp              float32 `json:"temp"`
+		Temp       float32 `json:"temp"`
+		Humidity   float32 `json:"humidity"`
+		Ultrasonic float32 `json:"ultrasonic"`
+		LVDT1      float32 `json:"lvdt1"`
+		LVDT2      float32 `json:"lvdt2"`
+
 		Rhum              int     `json:"rhum"`
 		Lux               int     `json:"lux"`
 		Press             int     `json:"press"`
