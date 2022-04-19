@@ -23,4 +23,6 @@ func SetRouter(app *sgo.SGo) {
 	app.GET("/api/:gateway/noise", GetNoiseLevel)
 	app.GET("/api/:gateway/txtotal", GetTxTotal)
 	app.GET("/api/:gateway/:sensorID/sensors", GetSensorDataByID)
+	app.PUT("/api/:gateway/:sensorID/sensors/:type", PutSensorRateByIDnType)
+	app.OPTIONS("/api/:gateway/:sensorID/sensors/:type", sgo.PreflightHandler)
 }
