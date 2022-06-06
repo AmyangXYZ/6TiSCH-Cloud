@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"fmt"
 	"math"
-	"os"
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
@@ -16,11 +15,11 @@ var (
 )
 
 func init() {
-	db, _ = sql.Open("mysql", fmt.Sprintf("%v:%v@(db:3306)/%v",
-		os.Getenv("DB_USER"),
-		os.Getenv("DB_PASSWORD"),
-		os.Getenv("DB_DB")))
-
+	// db, _ = sql.Open("mysql", fmt.Sprintf("%v:%v@(db:3306)/%v",
+	// 	os.Getenv("DB_USER"),
+	// 	os.Getenv("DB_PASSWORD"),
+	// 	os.Getenv("DB_DB")))
+	db, _ = sql.Open("mysql", "uu:password@(localhost:3306)/6tisch")
 	for {
 		if err := db.Ping(); err != nil {
 			fmt.Println(err, ", retry in 10s...")
@@ -462,7 +461,7 @@ func modelGetNWStatByID(gatewayName, sensorID string, timeRange, now int64) ([]S
 	var rows *sql.Rows
 	sList := make([]SensorNWStatData, 0)
 
-	rows, err = db.Query(`select TIMESTAMP, AVG_RSSI from NW_DATA_SET_PER_UCONN 
+	rows, err = db.Query(`select TIMESTAMP, AVG_RSSI from NW_DATA_SET_PER_UCONN
 			where GATEWAY_NAME=? and SENSOR_ID=? and TIMESTAMP>=? and TIMESTAMP<=?`, gatewayName, sensorID, timeRange, now)
 	if err != nil {
 		return sList, err
@@ -483,7 +482,7 @@ func modelGetNWStatAdvByID(gatewayName, sensorID string, timeRange, now int64) (
 	sList := make([]SensorNWStatAdvData, 0)
 
 	rows, err = db.Query(`select TIMESTAMP, MAC_TX_TOTAL_DIFF,
-			MAC_TX_NOACK_DIFF,APP_PER_SENT_DIFF,APP_PER_LOST_DIFF from NW_DATA_SET_PER_UCONN 
+			MAC_TX_NOACK_DIFF,APP_PER_SENT_DIFF,APP_PER_LOST_DIFF from NW_DATA_SET_PER_UCONN
 			where GATEWAY_NAME=? and SENSOR_ID=? and TIMESTAMP>=? and TIMESTAMP<=?`, gatewayName, sensorID, timeRange, now)
 	if err != nil {
 		return sList, err
@@ -570,10 +569,10 @@ func modelGetBattery(gatewayName string, timeRange, now int64) ([]SensorBatteryD
 	bList := make([]SensorBatteryData, 0)
 	var bat float64
 	if gatewayName == "any" {
-		rows, err = db.Query(`select SQL_BIG_RESULT SENSOR_ID,GATEWAY_NAME,AVG(CC2650_ACTIVE),AVG(CC2650_SLEEP),AVG(RF_RX),AVG(RF_TX),BAT 
+		rows, err = db.Query(`select SQL_BIG_RESULT SENSOR_ID,GATEWAY_NAME,AVG(CC2650_ACTIVE),AVG(CC2650_SLEEP),AVG(RF_RX),AVG(RF_TX),BAT
 			from SENSOR_DATA where TIMESTAMP>=? and TIMESTAMP<=? group by SENSOR_ID`, timeRange, now)
 	} else {
-		rows, err = db.Query(`select SQL_BIG_RESULT SENSOR_ID,GATEWAY_NAME,AVG(CC2650_ACTIVE),AVG(CC2650_SLEEP),AVG(RF_RX),AVG(RF_TX),BAT 
+		rows, err = db.Query(`select SQL_BIG_RESULT SENSOR_ID,GATEWAY_NAME,AVG(CC2650_ACTIVE),AVG(CC2650_SLEEP),AVG(RF_RX),AVG(RF_TX),BAT
 			from SENSOR_DATA where GATEWAY_NAME=? and TIMESTAMP>=? and TIMESTAMP<=? group by SENSOR_ID`, gatewayName, timeRange, now)
 	}
 	if err != nil {
@@ -637,7 +636,7 @@ func modelGetBatteryByID(gatewayName, sensorID string, timeRange, now int64) ([]
 		rows, err = db.Query(`select TIMESTAMP,CC2650_ACTIVE+CC2650_SLEEP+RF_RX+RF_TX
 			from SENSOR_DATA where TIMESTAMP>=? and TIMESTAMP<=? and SENSOR_ID=?`, timeRange, now, sensorID)
 	} else {
-		rows, err = db.Query(`select TIMESTAMP,CC2650_ACTIVE+CC2650_SLEEP+RF_RX+RF_TX 
+		rows, err = db.Query(`select TIMESTAMP,CC2650_ACTIVE+CC2650_SLEEP+RF_RX+RF_TX
 			from SENSOR_DATA where GATEWAY_NAME=? and TIMESTAMP>=? and TIMESTAMP<=? and SENSOR_ID=?`, gatewayName, timeRange, now, sensorID)
 	}
 	if err != nil {

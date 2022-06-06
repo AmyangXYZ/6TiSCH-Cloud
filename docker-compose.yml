@@ -1,17 +1,17 @@
 version: "3.9"
 services:
-  web:
-    image: amyangxyz111/6tisch-cloud-web
-    environment:
-      DB_DB: 6tisch
-      DB_USER: uu
-      DB_PASSWORD: password
-    ports:
-      - "8000:80"
-    depends_on:
-      - db
-    networks:
-      - n
+  # web:
+  #   image: amyangxyz111/6tisch-cloud-web
+  #   environment:
+  #     DB_DB: 6tisch
+  #     DB_USER: uu
+  #     DB_PASSWORD: password
+  #   ports:
+  #     - "8000:80"
+  #   depends_on:
+  #     - db
+  #   networks:
+  #     - n
   ds: 
     image: amyangxyz111/6tisch-cloud-ds
     environment:
@@ -20,13 +20,13 @@ services:
       DB_PASSWORD: password
     ports:
       - "54321:54321"
-    depends_on:
-      - db
-    networks:
-      - n
+    # depends_on:
+    #   - db
+    # networks:
+    #   - n
 
   db:
-    image: mariadb
+    image: linuxserver/mariadb  
     environment:
       MYSQL_RANDOM_ROOT_PASSWORD: "yes"
       MYSQL_DATABASE: 6tisch
@@ -34,8 +34,10 @@ services:
       MYSQL_PASSWORD: password
     expose:
       - "3306"
-    networks:
-      - n
+    ports:
+      - "3306:3306"
+    # networks:
+    #   - n
 
-networks:
-  n:
+# networks:
+#   n:
