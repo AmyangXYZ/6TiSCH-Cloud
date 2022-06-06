@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"math"
+	"os"
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
@@ -15,11 +16,11 @@ var (
 )
 
 func init() {
-	// db, _ = sql.Open("mysql", fmt.Sprintf("%v:%v@(db:3306)/%v",
-	// 	os.Getenv("DB_USER"),
-	// 	os.Getenv("DB_PASSWORD"),
-	// 	os.Getenv("DB_DB")))
-	db, _ = sql.Open("mysql", "uu:password@(localhost:3306)/6tisch")
+	db, _ = sql.Open("mysql", fmt.Sprintf("%v:%v@(db:3306)/%v",
+		os.Getenv("DB_USER"),
+		os.Getenv("DB_PASSWORD"),
+		os.Getenv("DB_DB")))
+	// db, _ = sql.Open("mysql", "uu:password@(localhost:3306)/6tisch")
 	for {
 		if err := db.Ping(); err != nil {
 			fmt.Println(err, ", retry in 10s...")
