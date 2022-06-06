@@ -1,17 +1,17 @@
 version: "3.9"
 services:
-  # web:
-  #   image: amyangxyz111/6tisch-cloud-web
-  #   environment:
-  #     DB_DB: 6tisch
-  #     DB_USER: uu
-  #     DB_PASSWORD: password
-  #   ports:
-  #     - "8000:80"
-  #   depends_on:
-  #     - db
-  #   networks:
-  #     - n
+  web:
+    image: amyangxyz111/6tisch-cloud-web
+    environment:
+      DB_DB: 6tisch
+      DB_USER: uu
+      DB_PASSWORD: password
+    ports:
+      - "8000:80"
+    # depends_on:
+    #   - db
+    # networks:
+    #   - n
   ds: 
     image: amyangxyz111/6tisch-cloud-ds
     environment:
