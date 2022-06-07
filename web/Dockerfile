@@ -14,7 +14,7 @@ RUN npm run build
 
 FROM alpine
 WORKDIR /app
-RUN apk add --no-cache libcoap
+RUN apk add --no-cache libcoap curl
 COPY --from=frontend-builder /app/dist ./
 COPY --from=backend-builder /go/bin/6tisch-cloud-web ./
 RUN mkdir templates &&\

@@ -240,7 +240,8 @@ func PutSensorRateByIDnType(ctx *sgo.Context) error {
 	id, _ := strconv.Atoi(ctx.Param("sensorID"))
 	rate, _ := strconv.ParseFloat(ctx.Param("rate"), 64)
 	// err := exec.Command("coap-client", "-m", "put", fmt.Sprintf("[2:%x]/sensors", id), "-e", fmt.Sprintf("%d", int(1/rate))).Run()
-	err := exec.Command("curl", fmt.Sprintf("http://docker.host.internal:8080/rate/%d/%d", id, int(1/rate))).Run()
+	err := exec.Command("curl", fmt.Sprintf("http://host.docker.internal:8080/rate/%d/%d", id, int(1/rate))).Run()
+	fmt.Println(fmt.Sprintf("http://host.docker.internal:8080/rate/%d/%d", id, int(1/rate)))
 	if err != nil {
 		return ctx.JSON(500, 0, err.Error(), nil)
 	}
