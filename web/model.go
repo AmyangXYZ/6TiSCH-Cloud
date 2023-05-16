@@ -618,7 +618,7 @@ func modelGetSensorDataByID(sensorID string, timeRange, now int64) ([]SensorData
 	defer rows.Close()
 
 	for rows.Next() {
-		rows.Scan(&s.Timestamp, &s.Temperature, &s.Humidity, &s.Ultrasonic, &s.LVDT1, &s.LVDT2, &s.RHum, &s.Luminosity, &s.AccelerometerX, &s.AccelerometerY, &s.AccelerometerZ)
+		rows.Scan(&s.Timestamp, &s.Temperature, &s.Humidity, &s.Ultrasonic, &s.LVDT1, &s.LVDT2, &s.RHum, &s.Luminosity, &s.Pressure, &s.AccelerometerX, &s.AccelerometerY, &s.AccelerometerZ)
 		sList = append(sList, s)
 	}
 
