@@ -593,16 +593,17 @@ func modelGetBattery(gatewayName string, timeRange, now int64) ([]SensorBatteryD
 type SensorData struct {
 	Timestamp   int64   `json:"timestamp"`
 	Temperature float64 `json:"temp"`
-	Humidity    float64 `json:"humidity"`
-	Ultrasonic  float64 `json:"ultrasonic"`
-	LVDT1       float64 `json:"lvdt1"`
-	LVDT2       float64 `json:"lvdt2"`
+	Humidity    float64 `json:"humidity,omitempty"`
+	Ultrasonic  float64 `json:"ultrasonic,omitempty"`
+	LVDT1       float64 `json:"lvdt1,omitempty"`
+	LVDT2       float64 `json:"lvdt2,omitempty"`
 
-	// Luminosity     float64 `json:"lux"`
-	// Pressure       float64 `json:"press"`
-	// AccelerometerX float64 `json:"acc_x"`
-	// AccelerometerY float64 `json:"acc_y"`
-	// AccelerometerZ float64 `json:"acc_z"`
+	RHum           float64 `json:"rhum"`
+	Luminosity     float64 `json:"lux"`
+	Pressure       float64 `json:"press"`
+	AccelerometerX float64 `json:"acc_x"`
+	AccelerometerY float64 `json:"acc_y"`
+	AccelerometerZ float64 `json:"acc_z"`
 }
 
 func modelGetSensorDataByID(sensorID string, timeRange, now int64) ([]SensorData, error) {
@@ -610,14 +611,14 @@ func modelGetSensorDataByID(sensorID string, timeRange, now int64) ([]SensorData
 	var rows *sql.Rows
 	sList := make([]SensorData, 0)
 
-	rows, err = db.Query(`select TIMESTAMP,TEMP,HUMIDITY,ULTRASONIC,LVDT1,LVDT2 from SENSOR_DATA where SENSOR_ID=? and TIMESTAMP>=? and TIMESTAMP<=?`, sensorID, timeRange, now)
+	rows, err = db.Query(`select TIMESTAMP,TEMP,HUMIDITY,ULTRASONIC,LVDT1,LVDT2,RHUM, LUX, PRESS, ACCELX, ACCELY, ACCELZ from SENSOR_DATA where SENSOR_ID=? and TIMESTAMP>=? and TIMESTAMP<=?`, sensorID, timeRange, now)
 	if err != nil {
 		return sList, err
 	}
 	defer rows.Close()
 
 	for rows.Next() {
-		rows.Scan(&s.Timestamp, &s.Temperature, &s.Humidity, &s.Ultrasonic, &s.LVDT1, &s.LVDT2)
+		rows.Scan(&s.Timestamp, &s.Temperature, &s.Humidity, &s.Ultrasonic, &s.LVDT1, &s.LVDT2, &s.RHum, &s.Luminosity, &s.AccelerometerX, &s.AccelerometerY, &s.AccelerometerZ)
 		sList = append(sList, s)
 	}
 
